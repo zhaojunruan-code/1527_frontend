@@ -1,6 +1,5 @@
 <template>
   <view class="page">
-    <!-- User Header -->
     <view class="user-header">
       <view class="user-info">
         <image
@@ -15,107 +14,111 @@
       </view>
     </view>
 
-    <!-- Content Area -->
     <view class="content-area">
-      <!-- Orders Section -->
       <view class="section-card">
         <view class="section-header" @click="goOrderList('all')">
           <text class="section-title">我的订单</text>
           <view class="see-all">
             <text class="see-all-text">全部订单</text>
-            <text class="arrow">›</text>
+            <ChevronRight class="arrow-icon" :size="16" color="currentColor" :stroke-width="2" />
           </view>
         </view>
         <view class="order-icons">
           <view class="order-icon-item" @click="goOrderList('pending_payment')">
             <view class="icon-circle icon-yellow">
-              <text class="icon-text">💰</text>
+              <Wallet class="order-icon-svg" :size="22" color="#8a6a00" :stroke-width="1.9" />
             </view>
             <text class="icon-label">待支付</text>
             <view class="badge" />
           </view>
           <view class="order-icon-item" @click="goOrderList('pending_service')">
             <view class="icon-circle icon-blue">
-              <text class="icon-text">⏳</text>
+              <Clock class="order-icon-svg" :size="22" color="#1565c0" :stroke-width="1.9" />
             </view>
             <text class="icon-label">待服务</text>
           </view>
           <view class="order-icon-item" @click="goOrderList('completed')">
             <view class="icon-circle icon-green">
-              <text class="icon-text">✅</text>
+              <CircleCheck class="order-icon-svg" :size="22" color="#2e7d32" :stroke-width="1.9" />
             </view>
             <text class="icon-label">已完成</text>
           </view>
           <view class="order-icon-item" @click="goOrderList('cancelled')">
             <view class="icon-circle icon-gray">
-              <text class="icon-text">✖</text>
+              <XCircle class="order-icon-svg" :size="22" color="#616161" :stroke-width="1.9" />
             </view>
             <text class="icon-label">已取消</text>
           </view>
           <view class="order-icon-item" @click="goOrderList('refund')">
             <view class="icon-circle icon-purple">
-              <text class="icon-text">🔄</text>
+              <RefreshCcw class="order-icon-svg" :size="22" color="#7b1fa2" :stroke-width="1.9" />
             </view>
             <text class="icon-label">退款售后</text>
           </view>
         </view>
       </view>
 
-      <!-- Menu Section 1 -->
       <view class="section-card">
         <view class="menu-item" @click="goPage('/pages/favorite-list/index')">
           <view class="menu-left">
-            <view class="menu-icon icon-rose">❤</view>
+            <view class="menu-icon icon-rose">
+              <Heart class="menu-icon-svg" :size="20" color="currentColor" :stroke-width="2" />
+            </view>
             <text class="menu-label">我的收藏</text>
           </view>
-          <text class="arrow">›</text>
+          <ChevronRight class="arrow-icon" :size="18" color="currentColor" :stroke-width="2" />
         </view>
         <view class="menu-item" @click="goPage('/pages/profile-edit/index')">
           <view class="menu-left">
-            <view class="menu-icon icon-gray-text">⚙</view>
+            <view class="menu-icon icon-gray-text">
+              <Settings class="menu-icon-svg" :size="20" color="currentColor" :stroke-width="2" />
+            </view>
             <text class="menu-label">个人资料编辑</text>
           </view>
-          <text class="arrow">›</text>
+          <ChevronRight class="arrow-icon" :size="18" color="currentColor" :stroke-width="2" />
         </view>
         <view
           class="menu-item menu-item-last"
           @click="goPage('/pages/about-us/index')"
         >
           <view class="menu-left">
-            <view class="menu-icon icon-blue-text">ℹ</view>
+            <view class="menu-icon icon-blue-text">
+              <Info class="menu-icon-svg" :size="20" color="currentColor" :stroke-width="2" />
+            </view>
             <text class="menu-label">关于我们</text>
           </view>
-          <text class="arrow">›</text>
+          <ChevronRight class="arrow-icon" :size="18" color="currentColor" :stroke-width="2" />
         </view>
       </view>
 
-      <!-- Menu Section 2 -->
       <view class="section-card">
         <view class="menu-item" @click="goPage('/pages/chat/index')">
           <view class="menu-left">
-            <view class="menu-icon icon-orange-text">🎧</view>
+            <view class="menu-icon icon-orange-text">
+              <Headphones class="menu-icon-svg" :size="20" color="currentColor" :stroke-width="2" />
+            </view>
             <text class="menu-label">在线客服</text>
           </view>
-          <text class="arrow">›</text>
+          <ChevronRight class="arrow-icon" :size="18" color="currentColor" :stroke-width="2" />
         </view>
         <view class="menu-item menu-item-last" @click="showContact = true">
           <view class="menu-left">
-            <view class="menu-icon icon-green-text">✉</view>
+            <view class="menu-icon icon-green-text">
+              <Mail class="menu-icon-svg" :size="20" color="currentColor" :stroke-width="2" />
+            </view>
             <text class="menu-label">联系我们</text>
           </view>
-          <text class="arrow">›</text>
+          <ChevronRight class="arrow-icon" :size="18" color="currentColor" :stroke-width="2" />
         </view>
       </view>
     </view>
 
-    <!-- Bottom spacing for tabbar -->
     <view style="height: 120rpx" />
 
-    <!-- Contact Modal -->
     <view v-if="showContact" class="modal-overlay" @click="showContact = false">
       <view class="modal-box" @click.stop>
         <view class="modal-icon-wrap">
-          <text class="modal-phone-icon">📞</text>
+          <Phone class="modal-phone-svg" :size="24" color="currentColor" :stroke-width="2" />
         </view>
         <text class="modal-title">联系我们</text>
         <text class="modal-desc">客服工作时间：09:00 - 22:00</text>
@@ -136,6 +139,29 @@
 </template>
 
 <script setup>
+import {
+  ChevronRight,
+  CircleCheck,
+  Clock,
+  Headphones,
+  Heart,
+  Info,
+  Mail,
+  Phone,
+  RefreshCcw,
+  Settings,
+  Wallet,
+  XCircle,
+} from '@lucide/vue'
+import CustomTabbar from '@/components/CustomTabbar/index.vue'
+import { useTabbarStore } from '@/store/useTabbarStore'
+
+const tabbarStore = useTabbarStore()
+
+onMounted(() => {
+  tabbarStore.tabbarIndex = 4
+})
+
 const showContact = ref(false)
 
 const goOrderList = (tab) => {
@@ -239,10 +265,10 @@ const callPhone = () => {
   color: #999999;
 }
 
-.arrow {
-  font-size: 30rpx;
-  color: #cccccc;
+.arrow-icon {
   margin-left: 4rpx;
+  color: #cccccc;
+  flex-shrink: 0;
 }
 
 .order-icons {
@@ -268,8 +294,9 @@ const callPhone = () => {
   margin-bottom: 12rpx;
 }
 
-.icon-text {
-  font-size: 36rpx;
+.order-icon-svg {
+  display: block;
+  flex-shrink: 0;
 }
 
 .icon-yellow {
@@ -331,8 +358,12 @@ const callPhone = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 32rpx;
   margin-right: 20rpx;
+}
+
+.menu-icon-svg {
+  display: block;
+  flex-shrink: 0;
 }
 
 .icon-rose {
@@ -360,7 +391,6 @@ const callPhone = () => {
   color: #444444;
 }
 
-/* Modal */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -394,10 +424,12 @@ const callPhone = () => {
   align-items: center;
   justify-content: center;
   margin-bottom: 24rpx;
+  color: #a60000;
 }
 
-.modal-phone-icon {
-  font-size: 44rpx;
+.modal-phone-svg {
+  display: block;
+  flex-shrink: 0;
 }
 
 .modal-title {

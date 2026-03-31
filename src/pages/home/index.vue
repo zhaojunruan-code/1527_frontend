@@ -1,117 +1,137 @@
 <template>
   <view class="page">
-    <!-- Header / Search -->
-    <view class="header">
-      <view class="header-inner">
-        <text class="header-title">潮汕·英歌行</text>
-      </view>
-      <view class="search-bar">
-        <text class="search-icon">🔍</text>
-        <input
-          class="search-input"
-          type="text"
-          placeholder="搜索服务、潮汕攻略..."
-          disabled
-        />
-      </view>
-    </view>
-
-    <!-- Carousel Banner -->
-    <view class="px-4 mt-4">
-      <view class="banner-wrap">
-        <swiper
-          class="banner-swiper"
-          :indicator-dots="true"
-          indicator-active-color="#A60000"
-          indicator-color="rgba(255,255,255,0.5)"
-          autoplay
-          circular
-        >
-          <swiper-item v-for="(item, idx) in banners" :key="idx">
-            <image class="banner-img" :src="item.img" mode="aspectFill" />
-            <view class="banner-overlay">
-              <text class="banner-text">{{ item.text }}</text>
-            </view>
-          </swiper-item>
-        </swiper>
-      </view>
-    </view>
-
-    <!-- Grid Shortcuts -->
-    <view class="grid-section">
-      <view
-        class="grid-item"
-        v-for="item in gridItems"
-        :key="item.label"
-        @click="item.action"
-      >
-        <view class="grid-icon-wrap">
-          <text class="grid-icon">{{ item.icon }}</text>
+    <z-paging
+      ref="paging"
+      v-model="pagingData"
+      class="home-paging"
+      :fixed="false"
+      :refresher-only="true"
+      :show-scrollbar="false"
+      :hide-empty-view="true"
+      refresher-default-text=""
+      refresher-pulling-text=""
+      refresher-refreshing-text=""
+      refresher-complete-text=""
+      @query="queryHomeData"
+    >
+      <template #top>
+        <view class="header">
+          <view class="header-inner">
+            <text class="header-title">潮汕·英歌行</text>
+          </view>
+          <view class="search-bar">
+            <text class="search-icon">🔍</text>
+            <input
+              class="search-input"
+              type="text"
+              placeholder="搜索服务、潮汕攻略..."
+              disabled
+            />
+          </view>
         </view>
-        <text class="grid-label">{{ item.label }}</text>
-      </view>
-    </view>
+      </template>
 
-    <!-- Recommended Services -->
-    <view class="px-4 mt-6">
-      <view class="section-header">
-        <view class="section-title-wrap">
-          <text class="section-title">推荐服务</text>
+      <view class="page-content">
+        <view class="content-block">
+          <view class="banner-wrap">
+            <swiper
+              class="banner-swiper"
+              :indicator-dots="true"
+              indicator-active-color="#A60000"
+              indicator-color="rgba(255,255,255,0.5)"
+              autoplay
+              circular
+            >
+              <swiper-item v-for="(item, idx) in banners" :key="idx">
+                <image class="banner-img" :src="item.img" mode="aspectFill" />
+                <view class="banner-overlay">
+                  <text class="banner-text">{{ item.text }}</text>
+                </view>
+              </swiper-item>
+            </swiper>
+          </view>
         </view>
-        <text class="section-more" @click="goServiceList">更多 ></text>
-      </view>
-      <scroll-view scroll-x class="service-scroll">
-        <view class="service-scroll-inner">
+
+        <view class="grid-section">
           <view
-            class="service-card"
-            v-for="item in services"
-            :key="item.title"
-            @click="goServiceDetail(item)"
+            v-for="item in gridItems"
+            :key="item.label"
+            class="grid-item"
+            @click="item.action"
           >
-            <image class="service-img" :src="item.img" mode="aspectFill" />
-            <view class="service-info">
-              <text class="service-title">{{ item.title }}</text>
-              <text class="service-date">发布日期: {{ item.date }}</text>
+            <view class="grid-icon-wrap">
+              <HomeShortcutIcon :name="item.iconName" />
+            </view>
+            <text class="grid-label">{{ item.label }}</text>
+          </view>
+        </view>
+
+        <view class="content-block section-block">
+          <view class="section-header">
+            <view class="section-title-wrap">
+              <text class="section-title">推荐服务</text>
+            </view>
+            <text class="section-more" @click="goServiceList">更多 ></text>
+          </view>
+          <scroll-view scroll-x class="service-scroll" show-scrollbar="false">
+            <view class="service-scroll-inner">
+              <view
+                v-for="item in services"
+                :key="item.title"
+                class="service-card"
+                @click="goServiceDetail(item)"
+              >
+                <image class="service-img" :src="item.img" mode="aspectFill" />
+                <view class="service-info">
+                  <text class="service-title">{{ item.title }}</text>
+                  <text class="service-date">发布日期: {{ item.date }}</text>
+                </view>
+              </view>
+            </view>
+          </scroll-view>
+        </view>
+
+        <view class="content-block section-block">
+          <view class="section-header">
+            <view class="section-title-wrap">
+              <text class="section-title">潮汕攻略</text>
+            </view>
+            <text class="section-more" @click="goStrategyTab">更多 ></text>
+          </view>
+          <view class="strategy-grid">
+            <view
+              v-for="item in strategies"
+              :key="item.title"
+              class="strategy-card"
+              @click="goStrategyDetail(item)"
+            >
+              <image class="strategy-img" :src="item.img" mode="aspectFill" />
+              <view class="strategy-info">
+                <text class="strategy-title">{{ item.title }}</text>
+                <text class="strategy-time">{{ item.time }}</text>
+              </view>
             </view>
           </view>
         </view>
-      </scroll-view>
-    </view>
 
-    <!-- Strategy Cards -->
-    <view class="px-4 mt-6">
-      <view class="section-header">
-        <view class="section-title-wrap">
-          <text class="section-title">潮汕攻略</text>
-        </view>
-        <text class="section-more" @click="goStrategyTab">更多 ></text>
+        <view class="tabbar-spacer" />
       </view>
-      <view class="strategy-grid">
-        <view
-          class="strategy-card"
-          v-for="item in strategies"
-          :key="item.title"
-          @click="goStrategyDetail(item)"
-        >
-          <image class="strategy-img" :src="item.img" mode="aspectFill" />
-          <view class="strategy-info">
-            <text class="strategy-title">{{ item.title }}</text>
-            <text class="strategy-time">{{ item.time }}</text>
-          </view>
-        </view>
-      </view>
-    </view>
+    </z-paging>
 
     <CustomTabbar />
   </view>
 </template>
 
 <script setup>
+import CustomTabbar from '@/components/CustomTabbar/index.vue'
+import HomeShortcutIcon from '@/components/HomeShortcutIcon.vue'
 import { useNavStore } from '@/store/useNavStore'
 import { useTabbarStore } from '@/store/useTabbarStore'
 
 const navStore = useNavStore()
 const tabbarStore = useTabbarStore()
+const paging = ref(null)
+const pagingData = ref([])
 
 onMounted(() => {
   tabbarStore.tabbarIndex = 0
@@ -123,13 +143,17 @@ const banners = [
   { img: 'https://picsum.photos/seed/shantou-food/800/400', text: '味蕾盛宴：汕头美食探秘之旅' },
 ]
 
+const goMainTab = (id, path) => {
+  tabbarStore.handleChangeTabbar({ id, path })
+}
+
 const gridItems = [
-  { icon: '🚗', label: '旅游包车', action: () => uni.switchTab({ url: '/pages/service/index' }) },
-  { icon: '🧑‍🏫', label: '潮汕导游', action: () => uni.switchTab({ url: '/pages/service/index' }) },
-  { icon: '🗺️', label: '潮汕攻略', action: () => uni.switchTab({ url: '/pages/strategy/index' }) },
-  { icon: '📋', label: '我的订单', action: () => uni.switchTab({ url: '/pages/profile/index' }) },
-  { icon: '🎧', label: '在线客服', action: () => uni.navigateTo({ url: '/pages/chat/index' }) },
-  { icon: '🤖', label: '智能助手', action: () => uni.switchTab({ url: '/pages/ai/index' }) },
+  { iconName: 'car', label: '旅游包车', action: () => goMainTab(1, '/pages/service/index') },
+  { iconName: 'guide', label: '潮汕导游', action: () => goMainTab(1, '/pages/service/index') },
+  { iconName: 'strategy', label: '潮汕攻略', action: () => goMainTab(3, '/pages/strategy/index') },
+  { iconName: 'orders', label: '我的订单', action: () => goMainTab(4, '/pages/profile/index') },
+  { iconName: 'service', label: '在线客服', action: () => uni.navigateTo({ url: '/pages/chat/index' }) },
+  { iconName: 'ai', label: '智能助手', action: () => goMainTab(2, '/pages/ai/index') },
 ]
 
 const services = [
@@ -143,6 +167,10 @@ const strategies = [
   { title: '潮汕牛肉火锅哪家强？本地人吐血推荐', time: '2026-03-18', img: 'https://picsum.photos/seed/beef/150/150' },
 ]
 
+const queryHomeData = async () => {
+  paging.value?.complete([{ id: 'home-page' }])
+}
+
 const goServiceList = () => {
   uni.navigateTo({ url: '/pages/service-list/index' })
 }
@@ -153,7 +181,7 @@ const goServiceDetail = (item) => {
 }
 
 const goStrategyTab = () => {
-  uni.switchTab({ url: '/pages/strategy/index' })
+  goMainTab(3, '/pages/strategy/index')
 }
 
 const goStrategyDetail = (item) => {
@@ -164,11 +192,13 @@ const goStrategyDetail = (item) => {
 
 <style scoped lang="scss">
 .page {
-  display: flex;
-  flex-direction: column;
   min-height: 100vh;
   background: #f5f5f5;
-  padding-bottom: 120rpx;
+}
+
+.home-paging {
+  height: 100vh;
+  background: #f5f5f5;
 }
 
 .header {
@@ -215,8 +245,21 @@ const goStrategyDetail = (item) => {
   background: transparent;
 }
 
+.page-content {
+  padding-bottom: 24rpx;
+}
+
+.content-block {
+  padding: 0 32rpx;
+}
+
+.section-block {
+  margin-top: 48rpx;
+}
+
 .banner-wrap {
   width: 100%;
+  margin-top: 32rpx;
   border-radius: 24rpx;
   overflow: hidden;
   box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.1);
@@ -274,10 +317,6 @@ const goStrategyDetail = (item) => {
   align-items: center;
   justify-content: center;
   margin-bottom: 16rpx;
-}
-
-.grid-icon {
-  font-size: 44rpx;
 }
 
 .grid-label {
@@ -406,5 +445,9 @@ const goStrategyDetail = (item) => {
   font-size: 20rpx;
   color: #9ca3af;
   margin-top: 8rpx;
+}
+
+.tabbar-spacer {
+  height: 140rpx;
 }
 </style>

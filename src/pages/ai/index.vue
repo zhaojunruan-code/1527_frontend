@@ -99,6 +99,15 @@
 </template>
 
 <script setup>
+import CustomTabbar from '@/components/CustomTabbar/index.vue'
+import { useTabbarStore } from '@/store/useTabbarStore'
+
+const tabbarStore = useTabbarStore()
+
+onMounted(() => {
+  tabbarStore.tabbarIndex = 2
+})
+
 const messages = ref([
   {
     role: 'ai',

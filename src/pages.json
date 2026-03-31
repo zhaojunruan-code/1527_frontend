@@ -86,43 +86,5 @@
       "name": "位置详情"
     }
   ],
-  "tabBar": {
-    "color": "#999999",
-    "selectedColor": "#A60000",
-    "backgroundColor": "#ffffff",
-    "borderStyle": "black",
-    "list": [
-      {
-        "pagePath": "pages/home/index",
-        "text": "首页",
-        "iconPath": "static/tabbar/home.png",
-        "selectedIconPath": "static/tabbar/home_a.png"
-      },
-      {
-        "pagePath": "pages/service/index",
-        "text": "服务",
-        "iconPath": "static/tabbar/service.png",
-        "selectedIconPath": "static/tabbar/service_a.png"
-      },
-      {
-        "pagePath": "pages/ai/index",
-        "text": "AI助手",
-        "iconPath": "static/tabbar/ai.png",
-        "selectedIconPath": "static/tabbar/ai_a.png"
-      },
-      {
-        "pagePath": "pages/strategy/index",
-        "text": "攻略",
-        "iconPath": "static/tabbar/strategy.png",
-        "selectedIconPath": "static/tabbar/strategy_a.png"
-      },
-      {
-        "pagePath": "pages/profile/index",
-        "text": "我的",
-        "iconPath": "static/tabbar/profile.png",
-        "selectedIconPath": "static/tabbar/profile_a.png"
-      }
-    ]
-  },
   "subPackages": []
 }

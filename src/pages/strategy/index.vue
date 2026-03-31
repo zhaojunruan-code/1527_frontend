@@ -1,48 +1,70 @@
 <template>
   <view class="page">
-    <!-- Header -->
-    <view class="header">
-      <text class="header-title">游玩攻略</text>
-      <view class="search-bar">
-        <text class="search-icon">🔍</text>
-        <input
-          class="search-input"
-          type="text"
-          placeholder="搜索攻略、景点、美食..."
-          placeholder-style="color: #999"
-          :value="searchText"
-          @input="searchText = $event.detail.value"
-        />
-      </view>
-    </view>
-
-    <!-- Strategy Grid -->
-    <view class="grid">
-      <view
-        class="card"
-        v-for="item in strategies"
-        :key="item.id"
-        @click="goDetail(item)"
-      >
-        <image class="card-img" :src="item.img" mode="aspectFill" />
-        <view class="card-body">
-          <text class="card-title">{{ item.title }}</text>
-          <text class="card-time">{{ item.time }}</text>
+    <z-paging
+      layout-only
+      class="strategy-paging"
+      :fixed="false"
+      :show-scrollbar="false"
+      :refresher-enabled="false"
+      use-page-scroll
+    >
+      <template #top>
+        <view class="header">
+          <text class="header-title">游玩攻略</text>
+          <view class="search-bar">
+            <Search class="search-icon" :size="18" color="currentColor" :stroke-width="2" />
+            <input
+              v-model="searchText"
+              class="search-input"
+              type="text"
+              placeholder="搜索攻略、景点、美食..."
+              confirm-type="search"
+            />
+          </view>
         </view>
-      </view>
-    </view>
+      </template>
 
-    <!-- Bottom spacing for tabbar -->
-    <view style="height: 120rpx" />
+      <view class="page-content">
+        <view class="grid">
+          <view
+            v-for="item in filteredStrategies"
+            :key="item.id"
+            class="card"
+            @click="goDetail(item)"
+          >
+            <image class="card-img" :src="item.img" mode="aspectFill" />
+            <view class="card-body">
+              <text class="card-title">{{ item.title }}</text>
+              <view class="card-meta">
+                <text class="card-time">{{ item.time }}</text>
+                <text class="card-divider">·</text>
+                <text class="card-author">{{ item.author }}</text>
+              </view>
+              <text class="card-views">{{ item.views }} 浏览</text>
+            </view>
+          </view>
+
+          <view v-if="filteredStrategies.length === 0" class="empty-state">
+            <text class="empty-text">未找到相关攻略</text>
+          </view>
+        </view>
+
+        <view class="tabbar-spacer" />
+      </view>
+    </z-paging>
 
     <CustomTabbar />
   </view>
 </template>
 
 <script setup>
+import { Search } from '@lucide/vue'
+import CustomTabbar from '@/components/CustomTabbar/index.vue'
 import { useNavStore } from '@/store/useNavStore'
+import { useTabbarStore } from '@/store/useTabbarStore'
 
 const navStore = useNavStore()
+const tabbarStore = useTabbarStore()
 
 const searchText = ref('')
 
@@ -89,106 +111,160 @@ const strategies = [
   },
 ]
 
+onMounted(() => {
+  tabbarStore.tabbarIndex = 3
+})
+
+const filteredStrategies = computed(() => {
+  const keyword = searchText.value.trim().toLowerCase()
+  if (!keyword) {
+    return strategies
+  }
+
+  return strategies.filter((item) => {
+    return `${item.title} ${item.author}`.toLowerCase().includes(keyword)
+  })
+})
+
 const goDetail = (item) => {
   navStore.setParams(item)
   uni.navigateTo({ url: '/pages/strategy-detail/index' })
 }
 </script>
 
-<style scoped lang="scss">
+<style lang="scss">
 .page {
   min-height: 100vh;
   background: #f5f5f5;
 }
 
+.strategy-paging {
+  height: 100vh;
+  background: #f5f5f5;
+}
+
 .header {
   background: #a60000;
-  padding-top: env(safe-area-inset-top);
-  padding-left: 30rpx;
-  padding-right: 30rpx;
-  padding-bottom: 24rpx;
-  position: sticky;
-  top: 0;
-  z-index: 40;
+  padding: env(safe-area-inset-top) 30rpx 28rpx;
+  border-radius: 0 0 32rpx 32rpx;
+  box-shadow: 0 6rpx 18rpx rgba(166, 0, 0, 0.25);
 }
 
 .header-title {
   display: block;
+  padding-top: 24rpx;
+  padding-bottom: 22rpx;
   color: #ffffff;
   font-size: 38rpx;
-  font-weight: bold;
+  font-weight: 700;
   text-align: center;
-  padding-top: 24rpx;
-  padding-bottom: 20rpx;
 }
 
 .search-bar {
   display: flex;
   align-items: center;
-  background: #ffffff;
-  border-radius: 100rpx;
+  height: 76rpx;
   padding: 0 24rpx;
-  height: 72rpx;
+  border-radius: 999rpx;
+  background: #ffffff;
+  color: #9ca3af;
+  box-shadow: inset 0 2rpx 6rpx rgba(15, 23, 42, 0.05);
 }
 
 .search-icon {
-  font-size: 28rpx;
-  margin-right: 12rpx;
+  width: 34rpx;
+  height: 34rpx;
   flex-shrink: 0;
 }
 
 .search-input {
   flex: 1;
-  font-size: 28rpx;
-  color: #333333;
-  height: 72rpx;
-  line-height: 72rpx;
+  margin-left: 12rpx;
+  font-size: 26rpx;
+  color: #1f2937;
+  background: transparent;
+}
+
+.page-content {
+  padding: 28rpx 24rpx 0;
+  box-sizing: border-box;
 }
 
 .grid {
   display: flex;
   flex-wrap: wrap;
-  padding: 20rpx;
-  gap: 16rpx;
+  gap: 20rpx;
+  justify-content: space-between;
 }
 
 .card {
-  width: calc(50% - 8rpx);
-  background: #ffffff;
-  border-radius: 16rpx;
+  width: calc((100% - 20rpx) / 2);
   overflow: hidden;
-  border: 1rpx solid #f0f0f0;
+  border-radius: 22rpx;
+  background: #ffffff;
+  box-shadow: 0 8rpx 20rpx rgba(15, 23, 42, 0.06);
 }
 
 .card-img {
   width: 100%;
-  height: 0;
-  padding-bottom: 75%;
+  height: 240rpx;
+  display: block;
 }
 
 .card-body {
-  padding: 16rpx 20rpx;
-  height: 120rpx;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  min-height: 170rpx;
+  padding: 18rpx 18rpx 20rpx;
+  box-sizing: border-box;
 }
 
 .card-title {
   display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
   overflow: hidden;
-  text-overflow: ellipsis;
+  color: #1f2937;
   font-size: 26rpx;
-  font-weight: bold;
-  color: #333333;
-  line-height: 1.4;
+  font-weight: 700;
+  line-height: 1.45;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
-.card-time {
-  font-size: 22rpx;
-  color: #999999;
+.card-meta {
+  display: flex;
+  align-items: center;
+  margin-top: 14rpx;
+  color: #6b7280;
+  font-size: 20rpx;
+}
+
+.card-divider {
+  margin: 0 8rpx;
+}
+
+.card-views {
   margin-top: 8rpx;
+  color: #9ca3af;
+  font-size: 20rpx;
+}
+
+.empty-state {
+  width: 100%;
+  min-height: 240rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 24rpx;
+  background: #ffffff;
+}
+
+.empty-text {
+  color: #9ca3af;
+  font-size: 26rpx;
+}
+
+.tabbar-spacer {
+  height: 140rpx;
 }
 </style>

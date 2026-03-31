@@ -66,7 +66,7 @@ export const useSwitchTab = (path, params = {}) => {
     key: path,
     data: params
   });
-  return uni.switchTab({
+  return uni.reLaunch({
     url: path, fail: error => {
       console.log(error);
     }

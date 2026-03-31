@@ -10,7 +10,7 @@
       </view>
 
       <text class="app-title">潮汕·英歌行</text>
-      <text class="app-slogan">探索最地道的潮汕风情</text>
+      <text class="app-slogan">探索最地道的潮汕风物</text>
 
       <view class="w-full mt-16" @click="handleLogin">
         <view class="login-btn">
@@ -35,14 +35,19 @@
 </template>
 
 <script setup>
+import { useTabbarStore } from '@/store/useTabbarStore'
+
 const agreed = ref(true)
+const tabbarStore = useTabbarStore()
 
 const handleLogin = () => {
   if (!agreed.value) {
     uni.showToast({ title: '请先同意用户协议', icon: 'none' })
     return
   }
-  uni.switchTab({ url: '/pages/home/index' })
+
+  tabbarStore.tabbarIndex = 0
+  uni.reLaunch({ url: '/pages/home/index' })
 }
 </script>
 

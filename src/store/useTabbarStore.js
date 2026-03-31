@@ -9,18 +9,24 @@ export const useTabbarStore = defineStore(
       };
     },
     actions: {
-      handleChangeTabbar(item) {
-        try {
-          if (item.centerItem) {
-            return uni.navigateTo({ url: item.path });
-          }
+      normalizePath(path) {
+        return String(path || "").replace(/^\//, "");
+      },
+      async handleChangeTabbar(item) {
+        this.tabbarIndex = item.id;
 
-          return uni.switchTab({
-            url: item.path
-          });
-        } finally {
-          this.tabbarIndex = item.id;
+        if (item.centerItem) {
+          return uni.navigateTo({ url: item.path });
         }
+
+        const currentPage = getCurrentPages().at(-1);
+        if (currentPage && this.normalizePath(currentPage.route) === this.normalizePath(item.path)) {
+          return;
+        }
+
+        return uni.reLaunch({
+          url: item.path,
+        });
       }
     }
   }

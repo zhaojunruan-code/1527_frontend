@@ -171,7 +171,7 @@ const onGetPhoneNumber = async (e) => {
     if (response.code === 200) {
       const userStore = useUserStore()
       userStore.setToken(response.data.token)
-      await uni.switchTab({ url: "/pages/index/index" })
+      await uni.reLaunch({ url: "/pages/home/index" })
     }
   } catch (error) {
     console.error(error)
@@ -203,7 +203,7 @@ const wxGetUserProfile = async () => {
       await userStore.setUserInfo()
       type.value = 2
       //loginShow.value = false
-      //uni.switchTab({ url: "/pages/index/index" })
+      //uni.reLaunch({ url: "/pages/home/index" })
     } else {
       await uni.showToast({ title: response.msg, icon: "error" })
     }
