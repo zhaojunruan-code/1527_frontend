@@ -1,5 +1,5 @@
 <!--
-  description: 自定义tabbar
+  description: 自定义tabbar - 潮汕英歌行
 -->
 <template>
   <view
@@ -10,7 +10,6 @@
       class="tabbar-item"
       v-for="(item, index) in tabbarList"
       :key="index"
-      :class="[item.centerItem ? 'center-item' : '']"
       :style="{ width: `calc(100%/${tabbarList.length})` }"
       @click="useTabbar.handleChangeTabbar(item)"
     >
@@ -31,11 +30,6 @@
 </template>
 <script setup>
 import { useTabbarStore } from "@/store/useTabbarStore"
-import { useUserStore } from "@/store/useUserStore"
-
-defineProps({
-  fixed: Boolean,
-})
 
 defineOptions({ name: "CustomTabbar" })
 
@@ -48,55 +42,45 @@ const tabbarList = [
     icon: "/static/tabbar/home.png",
     selectIcon: "/static/tabbar/home_a.png",
     text: "首页",
-    centerItem: false,
   },
   {
     id: 1,
-    path: "/pages/message/index",
-    icon: "/static/tabbar/msg.png",
-    selectIcon: "/static/tabbar/msg_a.png",
-    text: "消息",
-    centerItem: false,
+    path: "/pages/service/index",
+    icon: "/static/tabbar/service.png",
+    selectIcon: "/static/tabbar/service_a.png",
+    text: "服务",
   },
   {
     id: 2,
-    path: "/pages/mine/index",
-    icon: "/static/tabbar/my.png",
-    selectIcon: "/static/tabbar/my_a.png",
+    path: "/pages/ai/index",
+    icon: "/static/tabbar/ai.png",
+    selectIcon: "/static/tabbar/ai_a.png",
+    text: "AI助手",
+  },
+  {
+    id: 3,
+    path: "/pages/strategy/index",
+    icon: "/static/tabbar/strategy.png",
+    selectIcon: "/static/tabbar/strategy_a.png",
+    text: "攻略",
+  },
+  {
+    id: 4,
+    path: "/pages/profile/index",
+    icon: "/static/tabbar/profile.png",
+    selectIcon: "/static/tabbar/profile_a.png",
     text: "我的",
-    centerItem: false,
   },
 ]
 
 const safeAreaBottom = ref(0)
 
-const updateCurrentTab = () => {
-  const pages = getCurrentPages()
-  const currentPage = pages[pages.length - 1]
-  const route = currentPage.route
-
-  const normalizedRoute = route.startsWith("/") ? route : `/${route}`
-
-  const tabbarItem = tabbarList.value.find((i) => i.path === normalizedRoute)
-
-  if (tabbarItem) {
-    useTabbar.handleChangeTabbar(tabbarItem)
-  }
-}
-
 onMounted(() => {
   uni.hideTabBar()
-
   const systemInfo = uni.getSystemInfoSync()
   if (systemInfo.safeAreaInsets) {
     safeAreaBottom.value = systemInfo.safeAreaInsets.bottom || 0
   }
-
-  updateCurrentTab()
-})
-
-onShow(() => {
-  updateCurrentTab()
 })
 
 const current = computed(() => useTabbar.tabbarIndex)
@@ -114,7 +98,7 @@ view {
   left: 0;
   width: 100%;
   min-height: 110rpx;
-  box-shadow: 0 4px 10px 0 rgba(0, 0, 0, 0.3);
+  box-shadow: 0 -1px 6px 0 rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
   padding: 5rpx 0;
@@ -135,30 +119,13 @@ view {
 }
 
 .tabbar-container .item-active {
-  color: #27A046;
-}
-
-.tabbar-container .center-item {
-  display: block;
-  position: relative;
-  box-sizing: border-box;
+  color: #A60000;
 }
 
 .tabbar-container .tabbar-item .item-top {
-  width: 80rpx;
-  height: 80rpx;
-  padding: 10rpx;
-}
-
-.tabbar-container .center-item .item-top {
-  flex-shrink: 0;
-  width: 100rpx;
-  height: 100rpx;
-  position: absolute;
-  top: -50rpx;
-  left: calc(50% - 50rpx);
-  border-radius: 50%;
-  background-color: #ffffff;
+  width: 52rpx;
+  height: 52rpx;
+  padding: 4rpx;
 }
 
 .tabbar-container .tabbar-item .item-top image {
@@ -167,12 +134,8 @@ view {
 }
 
 .tabbar-container .tabbar-item .item-bottom {
-  font-size: 28rpx;
+  font-size: 22rpx;
   width: 100%;
-}
-
-.tabbar-container .center-item .item-bottom {
-  position: absolute;
-  bottom: 5rpx;
+  margin-top: 4rpx;
 }
 </style>
