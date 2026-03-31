@@ -26,6 +26,6 @@ All commands are defined in `package.json`. The primary ones:
 - The package manager is **pnpm** (specified via `packageManager` field in `package.json`). Do not use npm/yarn.
 - `pnpm-lock.yaml` is the lockfile; `package-lock.json` also exists but pnpm is authoritative.
 - The dev server binds to port **9003** (configured in `env/.env` as `VITE_APP_PORT`). If 9003 is in use, Vite auto-increments (9004, 9005, etc.).
-- Pages are mostly empty templates — this is expected for a starter/scaffold project.
+- Pages contain app-specific content for the "潮汕·英歌行" (Chaoshan tourism) app. The login page is the default entry point and navigates to the home tab via `uni.switchTab`.
 - No backend API server is included; `VITE_SERVER_BASEURL` in `env/.env` is empty by default.
 - No ESLint config exists; code formatting uses Prettier (`prettier` is a dev dependency).
