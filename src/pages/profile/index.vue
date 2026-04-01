@@ -1,6 +1,7 @@
 <template>
   <view class="page">
     <view class="user-header">
+      <view class="header-safe-area" :style="{ height: `${safeAreaTop}px` }" />
       <view class="user-info">
         <image
           class="avatar"
@@ -157,8 +158,11 @@ import CustomTabbar from '@/components/CustomTabbar/index.vue'
 import { useTabbarStore } from '@/store/useTabbarStore'
 
 const tabbarStore = useTabbarStore()
+const safeAreaTop = ref(0)
 
 onMounted(() => {
+  const { statusBarHeight } = uni.getSystemInfoSync()
+  safeAreaTop.value = statusBarHeight || 0
   tabbarStore.tabbarIndex = 4
 })
 
@@ -187,11 +191,14 @@ const callPhone = () => {
 
 .user-header {
   background: #a60000;
-  padding-top: env(safe-area-inset-top);
   padding-left: 40rpx;
   padding-right: 40rpx;
   padding-bottom: 80rpx;
   border-radius: 0 0 60rpx 60rpx;
+}
+
+.header-safe-area {
+  width: 100%;
 }
 
 .user-info {

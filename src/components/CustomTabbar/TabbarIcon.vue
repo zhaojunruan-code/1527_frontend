@@ -1,12 +1,22 @@
 <template>
   <view class="tabbar-icon" :class="{ 'tabbar-icon-active': active }">
-    <component
-      :is="iconComponent"
+    <House v-if="resolvedName === 'home'" class="icon-svg" :size="22" color="currentColor" :stroke-width="1.9" />
+    <BriefcaseBusiness
+      v-else-if="resolvedName === 'service'"
       class="icon-svg"
       :size="22"
       color="currentColor"
       :stroke-width="1.9"
     />
+    <Bot v-else-if="resolvedName === 'ai'" class="icon-svg" :size="22" color="currentColor" :stroke-width="1.9" />
+    <Map
+      v-else-if="resolvedName === 'strategy'"
+      class="icon-svg"
+      :size="22"
+      color="currentColor"
+      :stroke-width="1.9"
+    />
+    <User v-else class="icon-svg" :size="22" color="currentColor" :stroke-width="1.9" />
   </view>
 </template>
 
@@ -24,15 +34,8 @@ const props = defineProps({
   },
 })
 
-const iconMap = {
-  home: House,
-  service: BriefcaseBusiness,
-  ai: Bot,
-  strategy: Map,
-  profile: User,
-}
-
-const iconComponent = computed(() => iconMap[props.name] || User)
+const supportedNames = ['home', 'service', 'ai', 'strategy', 'profile']
+const resolvedName = computed(() => (supportedNames.includes(props.name) ? props.name : 'profile'))
 </script>
 
 <style scoped lang="scss">

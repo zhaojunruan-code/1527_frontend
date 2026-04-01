@@ -2,6 +2,7 @@
   <view class="page">
     <!-- Header -->
     <view class="header">
+      <view class="header-safe-area" :style="{ height: `${safeAreaTop}px` }" />
       <text class="header-title">潮汕百事通 AI</text>
     </view>
 
@@ -103,8 +104,11 @@ import CustomTabbar from '@/components/CustomTabbar/index.vue'
 import { useTabbarStore } from '@/store/useTabbarStore'
 
 const tabbarStore = useTabbarStore()
+const safeAreaTop = ref(0)
 
 onMounted(() => {
+  const { statusBarHeight } = uni.getSystemInfoSync()
+  safeAreaTop.value = statusBarHeight || 0
   tabbarStore.tabbarIndex = 2
 })
 
@@ -181,9 +185,12 @@ const sendMessage = (text) => {
 
 .header {
   background: #a60000;
-  padding-top: env(safe-area-inset-top);
   padding-bottom: 24rpx;
   text-align: center;
+}
+
+.header-safe-area {
+  width: 100%;
 }
 
 .header-title {

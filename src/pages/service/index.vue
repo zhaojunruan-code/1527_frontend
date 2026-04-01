@@ -10,6 +10,7 @@
     >
       <template #top>
         <view class="header">
+          <view class="header-safe-area" :style="{ height: `${safeAreaTop}px` }" />
           <view class="tab-switcher">
             <view
               class="tab-item"
@@ -185,6 +186,7 @@ import { useTabbarStore } from '@/store/useTabbarStore'
 
 const tabbarStore = useTabbarStore()
 const navStore = useNavStore()
+const safeAreaTop = ref(0)
 
 const activeTab = ref('charter')
 const searchText = ref('')
@@ -236,6 +238,8 @@ const guides = [
 ]
 
 onMounted(() => {
+  const { statusBarHeight } = uni.getSystemInfoSync()
+  safeAreaTop.value = statusBarHeight || 0
   tabbarStore.tabbarIndex = 1
 })
 
@@ -345,9 +349,13 @@ const goGuideDetail = (guide) => {
 
 .header {
   z-index: 40;
-  padding: calc(env(safe-area-inset-top) + 24rpx) 32rpx 32rpx;
+  padding: 24rpx 32rpx 32rpx;
   background: #a60000;
   box-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.08);
+}
+
+.header-safe-area {
+  width: 100%;
 }
 
 .tab-switcher {

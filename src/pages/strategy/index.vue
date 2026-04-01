@@ -10,6 +10,7 @@
     >
       <template #top>
         <view class="header">
+          <view class="header-safe-area" :style="{ height: `${safeAreaTop}px` }" />
           <text class="header-title">游玩攻略</text>
           <view class="search-bar">
             <Search class="search-icon" :size="18" color="currentColor" :stroke-width="2" />
@@ -35,12 +36,7 @@
             <image class="card-img" :src="item.img" mode="aspectFill" />
             <view class="card-body">
               <text class="card-title">{{ item.title }}</text>
-              <view class="card-meta">
-                <text class="card-time">{{ item.time }}</text>
-                <text class="card-divider">·</text>
-                <text class="card-author">{{ item.author }}</text>
-              </view>
-              <text class="card-views">{{ item.views }} 浏览</text>
+              <text class="card-time">{{ item.time }}</text>
             </view>
           </view>
 
@@ -65,6 +61,7 @@ import { useTabbarStore } from '@/store/useTabbarStore'
 
 const navStore = useNavStore()
 const tabbarStore = useTabbarStore()
+const safeAreaTop = ref(0)
 
 const searchText = ref('')
 
@@ -112,6 +109,8 @@ const strategies = [
 ]
 
 onMounted(() => {
+  const { statusBarHeight } = uni.getSystemInfoSync()
+  safeAreaTop.value = statusBarHeight || 0
   tabbarStore.tabbarIndex = 3
 })
 
@@ -145,9 +144,13 @@ const goDetail = (item) => {
 
 .header {
   background: #a60000;
-  padding: env(safe-area-inset-top) 30rpx 28rpx;
+  padding: 0 30rpx 28rpx;
   border-radius: 0 0 32rpx 32rpx;
   box-shadow: 0 6rpx 18rpx rgba(166, 0, 0, 0.25);
+}
+
+.header-safe-area {
+  width: 100%;
 }
 
 .header-title {
@@ -194,57 +197,43 @@ const goDetail = (item) => {
   display: flex;
   flex-wrap: wrap;
   gap: 20rpx;
-  justify-content: space-between;
 }
 
 .card {
-  width: calc((100% - 20rpx) / 2);
+  width: calc(50% - 10rpx);
   overflow: hidden;
-  border-radius: 22rpx;
+  border-radius: 14rpx;
   background: #ffffff;
-  box-shadow: 0 8rpx 20rpx rgba(15, 23, 42, 0.06);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 4rpx 14rpx rgba(15, 23, 42, 0.04);
+  box-sizing: border-box;
 }
 
 .card-img {
   width: 100%;
-  height: 240rpx;
+  height: 210rpx;
   display: block;
 }
 
 .card-body {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-height: 170rpx;
-  padding: 18rpx 18rpx 20rpx;
+  padding: 16rpx 16rpx 18rpx;
   box-sizing: border-box;
 }
 
 .card-title {
   display: -webkit-box;
   overflow: hidden;
-  color: #1f2937;
-  font-size: 26rpx;
+  color: #111827;
+  font-size: 24rpx;
   font-weight: 700;
-  line-height: 1.45;
+  line-height: 1.35;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 
-.card-meta {
-  display: flex;
-  align-items: center;
-  margin-top: 14rpx;
-  color: #6b7280;
-  font-size: 20rpx;
-}
-
-.card-divider {
-  margin: 0 8rpx;
-}
-
-.card-views {
-  margin-top: 8rpx;
+.card-time {
+  display: block;
+  margin-top: 10rpx;
   color: #9ca3af;
   font-size: 20rpx;
 }

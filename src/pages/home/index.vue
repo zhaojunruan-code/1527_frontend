@@ -1,32 +1,20 @@
 <template>
   <view class="page">
-    <z-paging
-      ref="paging"
-      v-model="pagingData"
-      class="home-paging"
-      :fixed="false"
-      :refresher-only="true"
-      :show-scrollbar="false"
-      :hide-empty-view="true"
-      refresher-default-text=""
-      refresher-pulling-text=""
-      refresher-refreshing-text=""
-      refresher-complete-text=""
-      @query="queryHomeData"
-    >
+    <z-paging layout-only class="home-paging" :fixed="false" :show-scrollbar="false" :refresher-enabled="false"
+      use-page-scroll>
       <template #top>
         <view class="header">
-          <view class="header-inner">
-            <text class="header-title">潮汕·英歌行</text>
-          </view>
-          <view class="search-bar">
-            <text class="search-icon">🔍</text>
-            <input
-              class="search-input"
-              type="text"
-              placeholder="搜索服务、潮汕攻略..."
-              disabled
-            />
+          <image class="header-bg-image" src="/static/images/home-top-bg.svg" mode="scaleToFill" />
+          <view class="header-content">
+            <view class="header-safe-area" :style="{ height: `${safeAreaTop}px` }" />
+            <view class="header-inner">
+              <image class="header-logo" src="/static/images/app-logo.svg" mode="aspectFit" />
+              <text class="header-title">潮游记</text>
+            </view>
+            <view class="search-bar">
+              <text class="search-icon">🔍</text>
+              <input class="search-input" type="text" placeholder="搜索服务、潮汕攻略..." disabled />
+            </view>
           </view>
         </view>
       </template>
@@ -34,14 +22,8 @@
       <view class="page-content">
         <view class="content-block">
           <view class="banner-wrap">
-            <swiper
-              class="banner-swiper"
-              :indicator-dots="true"
-              indicator-active-color="#A60000"
-              indicator-color="rgba(255,255,255,0.5)"
-              autoplay
-              circular
-            >
+            <swiper class="banner-swiper" :indicator-dots="true" indicator-active-color="#A60000"
+              indicator-color="rgba(255,255,255,0.5)" autoplay circular>
               <swiper-item v-for="(item, idx) in banners" :key="idx">
                 <image class="banner-img" :src="item.img" mode="aspectFill" />
                 <view class="banner-overlay">
@@ -53,12 +35,7 @@
         </view>
 
         <view class="grid-section">
-          <view
-            v-for="item in gridItems"
-            :key="item.label"
-            class="grid-item"
-            @click="item.action"
-          >
+          <view v-for="item in gridItems" :key="item.label" class="grid-item" @click="item.action">
             <view class="grid-icon-wrap">
               <HomeShortcutIcon :name="item.iconName" />
             </view>
@@ -75,12 +52,7 @@
           </view>
           <scroll-view scroll-x class="service-scroll" show-scrollbar="false">
             <view class="service-scroll-inner">
-              <view
-                v-for="item in services"
-                :key="item.title"
-                class="service-card"
-                @click="goServiceDetail(item)"
-              >
+              <view v-for="item in services" :key="item.title" class="service-card" @click="goServiceDetail(item)">
                 <image class="service-img" :src="item.img" mode="aspectFill" />
                 <view class="service-info">
                   <text class="service-title">{{ item.title }}</text>
@@ -99,12 +71,7 @@
             <text class="section-more" @click="goStrategyTab">更多 ></text>
           </view>
           <view class="strategy-grid">
-            <view
-              v-for="item in strategies"
-              :key="item.title"
-              class="strategy-card"
-              @click="goStrategyDetail(item)"
-            >
+            <view v-for="item in strategies" :key="item.title" class="strategy-card" @click="goStrategyDetail(item)">
               <image class="strategy-img" :src="item.img" mode="aspectFill" />
               <view class="strategy-info">
                 <text class="strategy-title">{{ item.title }}</text>
@@ -130,10 +97,11 @@ import { useTabbarStore } from '@/store/useTabbarStore'
 
 const navStore = useNavStore()
 const tabbarStore = useTabbarStore()
-const paging = ref(null)
-const pagingData = ref([])
+const safeAreaTop = ref(0)
 
 onMounted(() => {
+  const { statusBarHeight } = uni.getSystemInfoSync()
+  safeAreaTop.value = statusBarHeight || 0
   tabbarStore.tabbarIndex = 0
 })
 
@@ -167,10 +135,6 @@ const strategies = [
   { title: '潮汕牛肉火锅哪家强？本地人吐血推荐', time: '2026-03-18', img: 'https://picsum.photos/seed/beef/150/150' },
 ]
 
-const queryHomeData = async () => {
-  paging.value?.complete([{ id: 'home-page' }])
-}
-
 const goServiceList = () => {
   uni.navigateTo({ url: '/pages/service-list/index' })
 }
@@ -203,26 +167,51 @@ const goStrategyDetail = (item) => {
 
 .header {
   background: #a60000;
-  padding: env(safe-area-inset-top) 30rpx 30rpx;
+  min-height: 248rpx;
   border-radius: 0 0 32rpx 32rpx;
   position: relative;
   z-index: 40;
   box-shadow: 0 4rpx 16rpx rgba(166, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.header-bg-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+.header-content {
+  position: relative;
+  z-index: 1;
+  padding: 0 30rpx 30rpx;
+}
+
+.header-safe-area {
+  width: 100%;
 }
 
 .header-inner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 10rpx;
   padding-top: 24rpx;
   margin-bottom: 24rpx;
 }
 
+.header-logo {
+  width: 52rpx;
+  height: 52rpx;
+  flex-shrink: 0;
+}
+
 .header-title {
-  color: #ffffff;
-  font-weight: bold;
-  font-size: 40rpx;
-  letter-spacing: 4rpx;
+  font-family: Source Han Sans;
+  font-size: 18px;
+  font-weight: 500;
+  color: #FED36D;
 }
 
 .search-bar {

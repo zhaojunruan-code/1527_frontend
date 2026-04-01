@@ -1,10 +1,7 @@
 <template>
   <view class="login-page">
-    <view class="bg-gradient" />
-    <view class="bg-circle-right" />
-    <view class="bg-circle-left" />
-
-    <view class="flex-1 flex flex-col items-center justify-center px-8">
+    <image class="login-bg-image" src="/static/images/login-bg.png" mode="aspectFill" />
+    <view class="login-content flex-1 flex flex-col items-center justify-center px-8">
       <view class="logo-box">
         <text class="logo-text">潮</text>
       </view>
@@ -56,43 +53,23 @@ const handleLogin = () => {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background: #ffffff;
+  background-color: #ffffff;
   position: relative;
   overflow: hidden;
 }
 
-.bg-gradient {
+.login-bg-image {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 512rpx;
-  background: linear-gradient(to bottom, rgba(166, 0, 0, 0.1), transparent);
+  top: -6%;
+  left: -6%;
+  width: 112%;
+  height: 112%;
   z-index: 0;
 }
 
-.bg-circle-right {
-  position: absolute;
-  top: -192rpx;
-  right: -192rpx;
-  width: 512rpx;
-  height: 512rpx;
-  background: rgba(166, 0, 0, 0.05);
-  border-radius: 50%;
-  filter: blur(48px);
-  z-index: 0;
-}
-
-.bg-circle-left {
-  position: absolute;
-  top: 256rpx;
-  left: -192rpx;
-  width: 384rpx;
-  height: 384rpx;
-  background: rgba(166, 0, 0, 0.05);
-  border-radius: 50%;
-  filter: blur(32px);
-  z-index: 0;
+.login-content {
+  position: relative;
+  z-index: 1;
 }
 
 .logo-box {
