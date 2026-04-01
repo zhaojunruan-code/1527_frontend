@@ -65,10 +65,14 @@
       </view>
     </view>
 
+    <view class="bottom-spacer" :style="bottomSpacerStyle" />
+
     <!-- Bottom Bar -->
-    <view class="bottom-bar">
-      <view class="book-btn" @click="goBooking">
-        <text class="book-btn-text">立即预约</text>
+    <view class="bottom-bar" :style="bottomBarStyle">
+      <view class="bottom-bar-inner">
+        <view class="book-btn" @click="goBooking">
+          <text class="book-btn-text">立即预约</text>
+        </view>
       </view>
     </view>
   </view>
@@ -82,6 +86,7 @@ const navStore = useNavStore()
 const params = ref({})
 const swiperImages = ref([])
 const tagList = ref([])
+const safeAreaBottom = ref(0)
 
 const availableDates = [
   {
@@ -111,6 +116,11 @@ const availableDates = [
 ]
 
 onLoad(() => {
+  const systemInfo = uni.getSystemInfoSync()
+  if (systemInfo.safeAreaInsets) {
+    safeAreaBottom.value = systemInfo.safeAreaInsets.bottom || 0
+  }
+
   params.value = navStore.params || {}
   swiperImages.value = [
     params.value.img || 'https://picsum.photos/seed/guide1/750/500',
@@ -138,13 +148,20 @@ const goBooking = () => {
   })
   uni.navigateTo({ url: '/pages/guide-booking/index' })
 }
+
+const bottomBarStyle = computed(() => ({
+  paddingBottom: `${safeAreaBottom.value + 16}px`,
+}))
+
+const bottomSpacerStyle = computed(() => ({
+  height: `${safeAreaBottom.value + 128}px`,
+}))
 </script>
 
 <style scoped lang="scss">
 .page {
   min-height: 100vh;
   background: #f5f5f5;
-  padding-bottom: 140rpx;
 }
 
 .swiper-wrap {
@@ -311,26 +328,38 @@ const goBooking = () => {
   color: #999999;
 }
 
+.bottom-spacer {
+  width: 100%;
+}
+
 .bottom-bar {
   position: fixed;
   bottom: 0;
   left: 0;
-  width: 100%;
-  padding: 20rpx 30rpx;
-  padding-bottom: calc(20rpx + env(safe-area-inset-bottom));
-  background: #ffffff;
-  box-shadow: 0 -2rpx 12rpx rgba(0, 0, 0, 0.06);
+  right: 0;
+  padding: 18rpx 24rpx 0;
+  background: rgba(255, 255, 255, 0.98);
+  border-top: 1rpx solid #f1f5f9;
+  box-shadow: 0 -8rpx 24rpx rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(16rpx);
   z-index: 100;
+  box-sizing: border-box;
+}
+
+.bottom-bar-inner {
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .book-btn {
   width: 100%;
   height: 88rpx;
   background: #a60000;
-  border-radius: 44rpx;
+  border-radius: 999rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 10rpx 20rpx rgba(166, 0, 0, 0.18);
 }
 
 .book-btn-text {

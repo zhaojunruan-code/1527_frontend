@@ -48,7 +48,10 @@
             <view class="section-title-wrap">
               <text class="section-title">推荐服务</text>
             </view>
-            <text class="section-more" @click="goServiceList">更多 ></text>
+            <view>
+              <text class="section-more" @click="goServiceList">更多</text>
+              <wd-icon name="arrow-right" size="24rpx" color="#6b7280"></wd-icon>
+            </view>
           </view>
           <scroll-view scroll-x class="service-scroll" show-scrollbar="false">
             <view class="service-scroll-inner">
@@ -63,12 +66,15 @@
           </scroll-view>
         </view>
 
-        <view class="content-block section-block">
+        <view class="content-block section-block" style="padding-bottom: 40rpx;">
           <view class="section-header">
             <view class="section-title-wrap">
               <text class="section-title">潮汕攻略</text>
             </view>
-            <text class="section-more" @click="goStrategyTab">更多 ></text>
+            <view>
+            <text class="section-more" @click="goStrategyTab">更多</text>
+            <wd-icon name="arrow-right" size="24rpx" color="#6b7280"></wd-icon>
+            </view>
           </view>
           <view class="strategy-grid">
             <view v-for="item in strategies" :key="item.title" class="strategy-card" @click="goStrategyDetail(item)">
