@@ -1,27 +1,11 @@
 <template>
   <view class="tabbar-icon" :class="{ 'tabbar-icon-active': active }">
-    <House v-if="resolvedName === 'home'" class="icon-svg" :size="22" color="currentColor" :stroke-width="1.9" />
-    <BriefcaseBusiness
-      v-else-if="resolvedName === 'service'"
-      class="icon-svg"
-      :size="22"
-      color="currentColor"
-      :stroke-width="1.9"
-    />
-    <Bot v-else-if="resolvedName === 'ai'" class="icon-svg" :size="22" color="currentColor" :stroke-width="1.9" />
-    <Map
-      v-else-if="resolvedName === 'strategy'"
-      class="icon-svg"
-      :size="22"
-      color="currentColor"
-      :stroke-width="1.9"
-    />
-    <User v-else class="icon-svg" :size="22" color="currentColor" :stroke-width="1.9" />
+    <AppIcon class="icon-svg" :name="iconName" size="44rpx" :color="iconColor" />
   </view>
 </template>
 
 <script setup>
-import { Bot, BriefcaseBusiness, House, Map, User } from '@lucide/vue'
+import AppIcon from '@/components/AppIcon.vue'
 
 const props = defineProps({
   name: {
@@ -35,20 +19,28 @@ const props = defineProps({
 })
 
 const supportedNames = ['home', 'service', 'ai', 'strategy', 'profile']
+const iconMap = {
+  home: 'house',
+  service: 'briefcase-business',
+  ai: 'bot',
+  strategy: 'map',
+  profile: 'user',
+}
+
 const resolvedName = computed(() => (supportedNames.includes(props.name) ? props.name : 'profile'))
+const iconName = computed(() => iconMap[resolvedName.value])
+const iconColor = computed(() => (props.active ? '#a60000' : '#6b7280'))
 </script>
 
 <style scoped lang="scss">
 .tabbar-icon {
   width: 44rpx;
   height: 44rpx;
-  color: #6b7280;
   transform: scale(1);
-  transition: transform 0.18s ease, color 0.18s ease;
+  transition: transform 0.18s ease;
 }
 
 .tabbar-icon-active {
-  color: #a60000;
   transform: scale(1.1);
 }
 

@@ -13,7 +13,7 @@
           <view class="header-safe-area" :style="{ height: `${safeAreaTop}px` }" />
           <text class="header-title">游玩攻略</text>
           <view class="search-bar">
-            <Search class="search-icon" :size="18" color="currentColor" :stroke-width="2" />
+            <AppIcon class="search-icon" name="search" size="18" color="#9ca3af" />
             <input
               v-model="searchText"
               class="search-input"
@@ -54,7 +54,7 @@
 </template>
 
 <script setup>
-import { Search } from '@lucide/vue'
+import AppIcon from '@/components/AppIcon.vue'
 import CustomTabbar from '@/components/CustomTabbar/index.vue'
 import { useNavStore } from '@/store/useNavStore'
 import { useTabbarStore } from '@/store/useTabbarStore'

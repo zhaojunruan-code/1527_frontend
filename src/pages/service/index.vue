@@ -29,7 +29,7 @@
           </view>
 
           <view v-if="activeTab === 'guide'" class="search-bar">
-            <Search class="search-icon" :size="16" color="currentColor" :stroke-width="2" />
+            <AppIcon class="search-icon" name="search" size="16" color="#9ca3af" />
             <input
               v-model="searchText"
               class="search-input"
@@ -45,7 +45,7 @@
         <view v-if="activeTab === 'charter'" class="charter-section">
           <view class="charter-card">
             <view class="card-title-row">
-              <Car class="card-title-icon" :size="20" color="currentColor" :stroke-width="2" />
+              <AppIcon class="card-title-icon" name="car" size="20" color="#a60000" />
               <text class="card-title">预约包车</text>
             </view>
 
@@ -71,7 +71,7 @@
                 @change="handleDestinationChange"
               >
                 <view class="picker-field picker-field-with-icon">
-                  <MapPin class="field-icon" :size="16" color="currentColor" :stroke-width="2" />
+                  <AppIcon class="field-icon" name="map-pin" size="16" color="#9ca3af" />
                   <text
                     class="picker-text"
                     :class="{ 'picker-placeholder': selectedDestination === '' }"
@@ -86,7 +86,7 @@
               <text class="field-label">预约时间</text>
               <view class="time-group">
                 <view class="time-field">
-                  <Clock class="field-icon" :size="16" color="currentColor" :stroke-width="2" />
+                  <AppIcon class="field-icon" name="clock" size="16" color="#9ca3af" />
                   <picker mode="date" :value="appointmentDate" @change="handleDateChange">
                     <view class="time-picker-trigger">
                       <text
@@ -135,7 +135,7 @@
           </view>
 
           <view class="contact-button" @click="goChat">
-            <Phone class="phone-icon" :size="16" color="currentColor" :stroke-width="2" />
+            <AppIcon class="phone-icon" name="phone" size="16" color="#a60000" />
             <text class="contact-button-text">联系客服定制行程</text>
           </view>
         </view>
@@ -179,7 +179,7 @@
 </template>
 
 <script setup>
-import { Car, Clock, MapPin, Phone, Search } from '@lucide/vue'
+import AppIcon from '@/components/AppIcon.vue'
 import CustomTabbar from '@/components/CustomTabbar/index.vue'
 import { useNavStore } from '@/store/useNavStore'
 import { useTabbarStore } from '@/store/useTabbarStore'

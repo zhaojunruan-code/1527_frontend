@@ -4,11 +4,11 @@
       use-page-scroll>
       <template #top>
         <view class="header">
-          <image class="header-bg-image" src="/static/images/home-top-bg.svg" mode="scaleToFill" />
+          <image class="header-bg-image" src="/static/images/home-top-bg.png" mode="scaleToFill" />
           <view class="header-content">
             <view class="header-safe-area" :style="{ height: `${safeAreaTop}px` }" />
             <view class="header-inner">
-              <image class="header-logo" src="/static/images/app-logo.svg" mode="aspectFit" />
+              <image class="header-logo" src="/static/images/app-logo.png" mode="aspectFit" />
               <text class="header-title">潮游记</text>
             </view>
             <view class="search-bar">

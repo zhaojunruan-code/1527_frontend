@@ -1,40 +1,11 @@
 <template>
   <view class="shortcut-icon">
-    <Car v-if="resolvedName === 'car'" class="icon-svg" :size="22" color="currentColor" :stroke-width="1.9" />
-    <UserCheck
-      v-else-if="resolvedName === 'guide'"
-      class="icon-svg"
-      :size="22"
-      color="currentColor"
-      :stroke-width="1.9"
-    />
-    <Map
-      v-else-if="resolvedName === 'strategy'"
-      class="icon-svg"
-      :size="22"
-      color="currentColor"
-      :stroke-width="1.9"
-    />
-    <ClipboardList
-      v-else-if="resolvedName === 'orders'"
-      class="icon-svg"
-      :size="22"
-      color="currentColor"
-      :stroke-width="1.9"
-    />
-    <Headphones
-      v-else-if="resolvedName === 'service'"
-      class="icon-svg"
-      :size="22"
-      color="currentColor"
-      :stroke-width="1.9"
-    />
-    <Bot v-else class="icon-svg" :size="22" color="currentColor" :stroke-width="1.9" />
+    <AppIcon class="icon-svg" :name="iconName" size="44rpx" color="#a60000" />
   </view>
 </template>
 
 <script setup>
-import { Bot, Car, ClipboardList, Headphones, Map, UserCheck } from '@lucide/vue'
+import AppIcon from '@/components/AppIcon.vue'
 
 const props = defineProps({
   name: {
@@ -44,14 +15,23 @@ const props = defineProps({
 })
 
 const supportedNames = ['car', 'guide', 'strategy', 'orders', 'service', 'ai']
+const iconMap = {
+  car: 'car',
+  guide: 'user-check',
+  strategy: 'map',
+  orders: 'clipboard-list',
+  service: 'headphones',
+  ai: 'bot',
+}
+
 const resolvedName = computed(() => (supportedNames.includes(props.name) ? props.name : 'ai'))
+const iconName = computed(() => iconMap[resolvedName.value])
 </script>
 
 <style scoped lang="scss">
 .shortcut-icon {
   width: 44rpx;
   height: 44rpx;
-  color: #a60000;
 }
 
 .icon-svg {

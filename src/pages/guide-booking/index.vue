@@ -1,13 +1,7 @@
 <template>
   <view class="page">
     <!-- Header -->
-    <view class="header">
-      <view class="back-btn" @click="goBack">
-        <text class="back-arrow">←</text>
-      </view>
-      <text class="header-title">预约导游</text>
-      <view class="header-placeholder" />
-    </view>
+    <wd-navbar fixed placeholder title="预约导游" left-arrow safeAreaInsetTop @click-left="goBack"></wd-navbar>
 
     <!-- Guide Info Card -->
     <view class="guide-card">
