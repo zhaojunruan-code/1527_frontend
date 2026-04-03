@@ -5,58 +5,63 @@
       <text class="header-title">潮汕百事通 AI</text>
     </view>
 
-    <scroll-view
-      class="chat-area"
-      scroll-y
-      :scroll-into-view="scrollToId"
-      scroll-with-animation
+    <z-paging
+      ref="paging"
+      layout-only
+      class="chat-paging"
+      :fixed="false"
+      :show-scrollbar="false"
+      :refresher-enabled="false"
+      :loading-more-enabled="false"
     >
-      <view class="chat-list">
-        <view
-          v-for="(msg, idx) in messages"
-          :key="idx"
-          :id="`msg-${idx}`"
-          class="msg-row"
-          :class="msg.role === 'user' ? 'msg-row-right' : 'msg-row-left'"
-        >
-          <view v-if="msg.role === 'ai'" class="avatar-wrap">
-            <view class="avatar-ai">
-              <text class="avatar-text">AI</text>
-            </view>
-          </view>
-
+      <view class="chat-content">
+        <view class="chat-list">
           <view
-            class="bubble"
-            :class="msg.role === 'user' ? 'bubble-user' : 'bubble-ai'"
+            v-for="(msg, idx) in messages"
+            :key="idx"
+            :id="`msg-${idx}`"
+            class="msg-row"
+            :class="msg.role === 'user' ? 'msg-row-right' : 'msg-row-left'"
           >
-            <text class="bubble-text">{{ msg.content }}</text>
-          </view>
+            <view v-if="msg.role === 'ai'" class="avatar-wrap">
+              <view class="avatar-ai">
+                <text class="avatar-text">AI</text>
+              </view>
+            </view>
 
-          <view v-if="msg.role === 'user'" class="avatar-wrap">
-            <view class="avatar-user">
-              <text class="avatar-text">我</text>
+            <view
+              class="bubble"
+              :class="msg.role === 'user' ? 'bubble-user' : 'bubble-ai'"
+            >
+              <text class="bubble-text">{{ msg.content }}</text>
+            </view>
+
+            <view v-if="msg.role === 'user'" class="avatar-wrap">
+              <view class="avatar-user">
+                <text class="avatar-text">我</text>
+              </view>
             </view>
           </view>
+
+          <view v-if="loading" class="msg-row msg-row-left">
+            <view class="avatar-wrap">
+              <view class="avatar-ai">
+                <text class="avatar-text">AI</text>
+              </view>
+            </view>
+            <view class="bubble bubble-ai">
+              <view class="loading-dots">
+                <view class="dot dot1" />
+                <view class="dot dot2" />
+                <view class="dot dot3" />
+              </view>
+            </view>
+          </view>
+
+          <view class="chat-bottom-space" />
         </view>
-
-        <view v-if="loading" class="msg-row msg-row-left">
-          <view class="avatar-wrap">
-            <view class="avatar-ai">
-              <text class="avatar-text">AI</text>
-            </view>
-          </view>
-          <view class="bubble bubble-ai">
-            <view class="loading-dots">
-              <view class="dot dot1" />
-              <view class="dot dot2" />
-              <view class="dot dot3" />
-            </view>
-          </view>
-        </view>
-
-        <view id="msg-bottom" style="height: 20rpx" />
       </view>
-    </scroll-view>
+    </z-paging>
 
     <view v-if="messages.length <= 1" class="quick-questions">
       <view
@@ -111,9 +116,9 @@ const messages = ref([
     content: '胶己人，你好！我是潮汕智能助手。关于潮汕旅游、美食、英歌舞文化，或者行程规划，都可以问我哦！',
   },
 ])
+const paging = ref(null)
 const inputText = ref('')
 const loading = ref(false)
-const scrollToId = ref('')
 const quickQuestions = ref([...defaultQuickQuestions])
 
 const loadQuickQuestions = async () => {
@@ -141,10 +146,10 @@ onMounted(async () => {
 
 const scrollToBottom = () => {
   nextTick(() => {
-    scrollToId.value = ''
-    nextTick(() => {
-      scrollToId.value = 'msg-bottom'
-    })
+    paging.value?.scrollToBottom(false)
+    setTimeout(() => {
+      paging.value?.scrollToBottom(false)
+    }, 60)
   })
 }
 
@@ -212,15 +217,25 @@ const sendMessage = (text) => {
   padding-top: 24rpx;
 }
 
-.chat-area {
+.chat-paging {
   flex: 1;
+  min-height: 0;
+}
+
+.chat-content {
   padding: 20rpx;
   box-sizing: border-box;
+  min-height: 100%;
 }
 
 .chat-list {
   display: flex;
   flex-direction: column;
+}
+
+.chat-bottom-space {
+  height: 20rpx;
+  flex-shrink: 0;
 }
 
 .msg-row {
