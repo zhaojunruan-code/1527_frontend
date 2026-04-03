@@ -1,61 +1,90 @@
 {
-    "globalStyle": {
-        "navigationStyle": "custom",
-        "navigationBarBackgroundColor": "#f8f8f8",
-        "navigationBarTextStyle": "black",
-        "backgroundColor": "#FFFFFF"
+  "globalStyle": {
+    "navigationStyle": "custom",
+    "navigationBarBackgroundColor": "#f8f8f8",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#FFFFFF"
+  },
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^wd-(.*)": "wot-design-uni/components/wd-$1/wd-$1.vue",
+      "^(?!z-paging-refresh|z-paging-load-more)z-paging(.*)": "z-paging/components/z-paging$1/z-paging$1.vue"
+    }
+  },
+  "pages": [
+    {
+      "path": "pages/login/index",
+      "name": "登录"
     },
-    "easycom": {
-        "autoscan": true,
-        "custom": {
-            "^wd-(.*)": "wot-design-uni/components/wd-$1/wd-$1.vue",
-            "^(?!z-paging-refresh|z-paging-load-more)z-paging(.*)": "z-paging/components/z-paging$1/z-paging$1.vue"
-        }
+    {
+      "path": "pages/home/index",
+      "name": "首页"
     },
-    "pages": [
-        {
-            "path": "pages/index/index",
-            "name": "首页"
-        },
-      // #ifdef APP-ANDROID
-      {
-        "name": "权限弹窗",
-        "path": "pages/auth/index",
-        "style": {
-          "navigationStyle": "custom",
-          "backgroundColor": "transparent",
-          "app-plus": {
-            "animationType": "fade-in",
-            "background": "transparent",
-            "backgroundColor": "transparent",
-            "webviewBGTransparent": true,
-            "mask": "none",
-            "popGesture": "none",
-            "bounce": "none"
-          }
-        }
-      },
-      // #endif
-        {
-            "path": "pages/empty/index",
-            "name": "空页面"
-        }
-    ],
-    "tabBar": {
-        "color": "#999999",
-        "selectedColor": "#333333",
-        "backgroundColor": "#ffffff",
-        "borderStyle": "black",
-        "list": [
-            {
-                "pagePath": "pages/index/index",
-                "text": "首页"
-            },
-            {
-                "pagePath": "pages/empty/index",
-                "text": "空页面"
-            }
-        ]
+    {
+      "path": "pages/service/index",
+      "name": "服务"
     },
-    "subPackages": []
+    {
+      "path": "pages/ai/index",
+      "name": "AI助手"
+    },
+    {
+      "path": "pages/strategy/index",
+      "name": "攻略"
+    },
+    {
+      "path": "pages/profile/index",
+      "name": "我的"
+    },
+    {
+      "path": "pages/service-detail/index",
+      "name": "服务详情"
+    },
+    {
+      "path": "pages/service-list/index",
+      "name": "推荐服务"
+    },
+    {
+      "path": "pages/strategy-detail/index",
+      "name": "攻略详情"
+    },
+    {
+      "path": "pages/guide-detail/index",
+      "name": "导游详情"
+    },
+    {
+      "path": "pages/guide-booking/index",
+      "name": "预约导游"
+    },
+    {
+      "path": "pages/order-list/index",
+      "name": "我的订单"
+    },
+    {
+      "path": "pages/order-detail/index",
+      "name": "订单详情"
+    },
+    {
+      "path": "pages/favorite-list/index",
+      "name": "我的收藏"
+    },
+    {
+      "path": "pages/profile-edit/index",
+      "name": "个人资料编辑"
+    },
+    {
+      "path": "pages/about-us/index",
+      "name": "关于我们"
+    },
+    {
+      "path": "pages/chat/index",
+      "name": "在线客服"
+    },
+    {
+      "path": "pages/map/index",
+      "name": "位置详情"
+    }
+  ],
+  "subPackages": []
 }

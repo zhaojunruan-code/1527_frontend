@@ -1,9 +1,10 @@
 <template>
-  <view class="login-btn" @click="loginShow = true">
+  <view class="login-btn" @click="handleOpenLogin">
     <slot></slot>
   </view>
 
   <wd-popup
+    v-if="loginShow"
     v-model="loginShow"
     position="bottom"
     :closable="true"
@@ -12,7 +13,6 @@
   >
     <view class="login-box">
       <view class="auth_content">
-        <!-- 顶部信息展示 -->
         <view class="auth_top">
           <view class="ptitle">
             <text>获取您的</text>
@@ -27,7 +27,6 @@
           </view>
         </view>
 
-        <!-- 头像昵称登录 -->
         <view v-if="type === 1">
           <view class="auth_ul">
             <view class="auth_li">
@@ -59,14 +58,13 @@
           <view class="confirm_btn" @tap.stop="wxGetUserProfile">确定</view>
         </view>
 
-        <!-- 手机号登录 -->
         <button
           v-if="type === 2"
           class="confirm_btn"
           open-type="getPhoneNumber"
           @getphonenumber="onGetPhoneNumber"
         >
-          手机号授权登录
+          {{ silentLoginLoading ? "登录准备中..." : "手机号授权登录" }}
         </button>
       </view>
     </view>
@@ -74,73 +72,145 @@
 </template>
 
 <script setup>
-import { useUserStore } from "@/store/useUserStore"
+import { onMounted } from "vue"
 import { getWechatMobile, wechatLogin } from "@/api/common"
+import { useTabbarStore } from "@/store/useTabbarStore"
+import { useUserStore } from "@/store/useUserStore"
 
-defineOptions({name: 'LoginWrapper'})
-// 组件传值
+defineOptions({ name: "LoginWrapper" })
+
 const props = defineProps({
   agreement: { type: [Boolean, String], default: false },
-  /**
-   * 1: 头像昵称
-   * 2: 手机号
-   */
   loginType: { type: Number, default: 1 },
+  redirectUrl: { type: String, default: "" },
+  autoSilentLogin: { type: Boolean, default: false },
+  autoOpenPhoneAuth: { type: Boolean, default: false },
 })
 
-const { agreement, loginType } = toRefs(props)
+const { agreement, loginType, redirectUrl, autoSilentLogin, autoOpenPhoneAuth } = toRefs(props)
 const type = ref(loginType.value)
 const loginShow = ref(false)
-const form = ref({ avatar_url: "", nick_name: "", phone: "", code: "" })
-const openId = ref(null)
-const safeAreaBottom = ref(0)
+const silentLoginLoading = ref(false)
+const form = ref({
+  avatar_url: "",
+  avatar_fullurl: "",
+  nick_name: "",
+  phone: "",
+  code: "",
+})
+const uploadUrl = import.meta.env.VITE_UPLOAD_BASEURL || "/api/index/upload"
+const tabbarStore = useTabbarStore()
+const userStore = useUserStore()
 
-// 静默登录
-const wxLogin = async () => {
+const getMiniProgramAppId = () => {
+  // #ifdef MP-WEIXIN
+  try {
+    const accountInfo = uni.getAccountInfoSync?.()
+    return accountInfo?.miniProgram?.appId || ""
+  } catch (error) {
+    return ""
+  }
+  // #endif
+
+  // #ifndef MP-WEIXIN
+  return ""
+  // #endif
+}
+
+const ensureValidWechatAppId = (showToast = true) => {
+  // #ifdef MP-WEIXIN
+  const appId = getMiniProgramAppId()
+  if (!appId || appId === "touristappid") {
+    if (showToast) {
+      uni.showToast({
+        title: "当前是 touristappid，需用真实小程序 appid 运行微信登录",
+        icon: "none",
+        duration: 3000,
+      })
+    }
+    return false
+  }
+  // #endif
+
+  return true
+}
+
+const goAfterLogin = async () => {
+  tabbarStore.tabbarIndex = 0
+  await uni.reLaunch({ url: redirectUrl.value || "/pages/home/index" })
+}
+
+const ensureSilentLogin = async (showInvalidAppIdToast = true) => {
+  if (silentLoginLoading.value) {
+    return false
+  }
+
+  if (!ensureValidWechatAppId(showInvalidAppIdToast)) {
+    return false
+  }
+
+  if (userStore.getToken) {
+    return true
+  }
+
+  silentLoginLoading.value = true
+  uni.showLoading({
+    title: "登录准备中",
+    mask: true,
+  })
+
   try {
     const { code } = await uni.login()
     form.value.code = code
 
     const response = await wechatLogin({ code })
     if (response.code === 200) {
-      openId.value = response.data.openid
-      // 静默登陆保留TOKEN
-      // TODO 自行根据项目判断是否需要，不需要就删掉
-      const userStore = useUserStore()
-      userStore.setToken(response.data.token)
-    } else {
-      await uni.showToast({ title: response.msg, icon: "error" })
+      userStore.setToken(response.data?.token || response.data?.access_token)
+      userStore.setUserInfo(response.data || {})
+      return true
     }
+
+    uni.showToast({
+      title: response.msg || "静默登录失败",
+      icon: "none",
+    })
+    return false
   } catch (error) {
-    await uni.showToast({ title: error.message, icon: "none" })
+    uni.showToast({
+      title: error?.message || "静默登录失败",
+      icon: "none",
+    })
+    return false
+  } finally {
+    silentLoginLoading.value = false
+    uni.hideLoading()
   }
 }
 
-// 初始化函数
-const initFun = async () => {
-  uni.getSystemInfo({
-    success: (res) => {
-      safeAreaBottom.value = res.screenHeight - res.safeArea.bottom
-    },
-  })
-  if (type.value === 2) await wxLogin()
+const handleOpenLogin = async () => {
+  if (!agreement.value) {
+    uni.showToast({ title: "请先同意用户协议", icon: "none" })
+    return
+  }
+
+  if (type.value === 2) {
+    const success = await ensureSilentLogin()
+    if (!success) {
+      return
+    }
+  }
+
+  loginShow.value = true
 }
 
-// 头像选择处理
 const onChooseAvatar = async (e) => {
-
-  const userStore = useUserStore()
-
   uni.uploadFile({
-    url: import.meta.env.VITE_UPLOAD_BASEURL,
+    url: uploadUrl,
     filePath: e.detail.avatarUrl,
     name: "file",
-    formData: {
-      //token: userStore.getToken, // TODO 根据自己项目决定是否启用这个
-    },
     success: (response) => {
       const r = JSON.parse(response.data)
-      form.value.avatar_url = r.data.url // 传给后台的地址
+      form.value.avatar_url = r.data.url
       form.value.avatar_fullurl = r.data.fullurl
     },
     fail: (error) => {
@@ -148,10 +218,11 @@ const onChooseAvatar = async (e) => {
     },
   })
 }
-// 昵称输入处理
-const onNickName = (e) => (form.value.nick_name = e.detail.value)
 
-// 手机号登录处理
+const onNickName = (e) => {
+  form.value.nick_name = e.detail.value
+}
+
 const onGetPhoneNumber = async (e) => {
   if (!agreement.value) {
     return uni.showToast({ title: "请先授权登录", icon: "error" })
@@ -159,26 +230,40 @@ const onGetPhoneNumber = async (e) => {
 
   if (e.detail.errMsg !== "getPhoneNumber:ok") return
 
+  const silentLoginSuccess = await ensureSilentLogin()
+  if (!silentLoginSuccess) {
+    return
+  }
+
   try {
     const { code } = await uni.login()
     const response = await getWechatMobile({
       encryptedData: e.detail.encryptedData,
       iv: e.detail.iv,
       code,
-      // openid: openId.value
     })
 
     if (response.code === 200) {
-      const userStore = useUserStore()
-      userStore.setToken(response.data.token)
-      await uni.switchTab({ url: "/pages/index/index" })
+      userStore.setToken(response.data?.token || response.data?.access_token)
+      userStore.setUserInfo(response.data || {})
+      loginShow.value = false
+      await goAfterLogin()
+      return
     }
+
+    uni.showToast({
+      title: response.msg || "登录失败",
+      icon: "none",
+    })
   } catch (error) {
     console.error(error)
+    uni.showToast({
+      title: error?.message || "登录失败",
+      icon: "none",
+    })
   }
 }
 
-// 头像昵称登录处理
 const wxGetUserProfile = async () => {
   if (!agreement.value) {
     return uni.showToast({ title: "请先授权登录", icon: "error" })
@@ -198,22 +283,28 @@ const wxGetUserProfile = async () => {
     })
 
     if (response.code === 200) {
-      const userStore = useUserStore()
       userStore.setToken(response.data?.token || response.data?.access_token)
-      await userStore.setUserInfo()
+      userStore.setUserInfo(response.data || {})
       type.value = 2
-      //loginShow.value = false
-      //uni.switchTab({ url: "/pages/index/index" })
-    } else {
-      await uni.showToast({ title: response.msg, icon: "error" })
+      return
     }
+
+    await uni.showToast({ title: response.msg, icon: "error" })
   } catch (error) {
     await uni.showToast({ title: error.message, icon: "error" })
   }
 }
 
-// 页面显示时初始化
-initFun()
+onMounted(async () => {
+  if (!autoSilentLogin.value || type.value !== 2) {
+    return
+  }
+
+  const success = await ensureSilentLogin(false)
+  if (success && autoOpenPhoneAuth.value) {
+    loginShow.value = true
+  }
+})
 </script>
 
 <style lang="scss" scoped>

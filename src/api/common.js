@@ -54,3 +54,32 @@ export const onGetUserInfo = () => {
     method: "get",
   })
 }
+
+export const getUserInfo = () => {
+  return request({
+    url: "/api/user/userinfo",
+    method: "get",
+  })
+}
+
+export const getSiteConfig = () => {
+  return request({
+    url: "/api/common/siteConfig",
+    method: "get",
+  })
+}
+
+export const getAIGreetingList = () => {
+  return request({
+    url: "/api/common/aiGreetingList",
+    method: "get",
+  })
+}
+
+export const postEditUserInfo = (data) => {
+  return request({
+    url: "/api/user/editinfo",
+    method: "post",
+    data,
+  })
+}

@@ -1,41 +1,29 @@
-<!--
-  description: 自定义tabbar
--->
 <template>
   <view
     class="tabbar-container"
     :style="{ paddingBottom: safeAreaBottom + 'px' }"
   >
     <view
+      v-for="item in tabbarList"
+      :key="item.id"
       class="tabbar-item"
-      v-for="(item, index) in tabbarList"
-      :key="index"
-      :class="[item.centerItem ? 'center-item' : '']"
-      :style="{ width: `calc(100%/${tabbarList.length})` }"
+      :class="{ 'tabbar-item-active': current === item.id }"
+      :style="{ width: `calc(100% / ${tabbarList.length})` }"
       @click="useTabbar.handleChangeTabbar(item)"
     >
       <view class="item-top">
-        <image
-          :src="current == item.id ? item.selectIcon : item.icon"
-          mode="widthFix"
-        />
+        <TabbarIcon :name="item.iconName" :active="current === item.id" />
       </view>
-      <view
-        class="item-bottom"
-        :class="[current == item.id ? 'item-active' : '']"
-      >
+      <view class="item-bottom">
         <text>{{ item.text }}</text>
       </view>
     </view>
   </view>
 </template>
+
 <script setup>
 import { useTabbarStore } from "@/store/useTabbarStore"
-import { useUserStore } from "@/store/useUserStore"
-
-defineProps({
-  fixed: Boolean,
-})
+import TabbarIcon from "./TabbarIcon.vue"
 
 defineOptions({ name: "CustomTabbar" })
 
@@ -45,62 +33,47 @@ const tabbarList = [
   {
     id: 0,
     path: "/pages/home/index",
-    icon: "/static/tabbar/home.png",
-    selectIcon: "/static/tabbar/home_a.png",
+    iconName: "home",
     text: "首页",
-    centerItem: false,
   },
   {
     id: 1,
-    path: "/pages/message/index",
-    icon: "/static/tabbar/msg.png",
-    selectIcon: "/static/tabbar/msg_a.png",
-    text: "消息",
-    centerItem: false,
+    path: "/pages/service/index",
+    iconName: "service",
+    text: "服务",
   },
   {
     id: 2,
-    path: "/pages/mine/index",
-    icon: "/static/tabbar/my.png",
-    selectIcon: "/static/tabbar/my_a.png",
+    path: "/pages/ai/index",
+    iconName: "ai",
+    text: "AI助手",
+  },
+  {
+    id: 3,
+    path: "/pages/strategy/index",
+    iconName: "strategy",
+    text: "攻略",
+  },
+  {
+    id: 4,
+    path: "/pages/profile/index",
+    iconName: "profile",
     text: "我的",
-    centerItem: false,
   },
 ]
 
 const safeAreaBottom = ref(0)
 
-const updateCurrentTab = () => {
-  const pages = getCurrentPages()
-  const currentPage = pages[pages.length - 1]
-  const route = currentPage.route
-
-  const normalizedRoute = route.startsWith("/") ? route : `/${route}`
-
-  const tabbarItem = tabbarList.value.find((i) => i.path === normalizedRoute)
-
-  if (tabbarItem) {
-    useTabbar.handleChangeTabbar(tabbarItem)
-  }
-}
-
 onMounted(() => {
-  uni.hideTabBar()
-
   const systemInfo = uni.getSystemInfoSync()
   if (systemInfo.safeAreaInsets) {
     safeAreaBottom.value = systemInfo.safeAreaInsets.bottom || 0
   }
-
-  updateCurrentTab()
-})
-
-onShow(() => {
-  updateCurrentTab()
 })
 
 const current = computed(() => useTabbar.tabbarIndex)
 </script>
+
 <style scoped lang="scss">
 view {
   padding: 0;
@@ -114,65 +87,42 @@ view {
   left: 0;
   width: 100%;
   min-height: 110rpx;
-  box-shadow: 0 4px 10px 0 rgba(0, 0, 0, 0.3);
   display: flex;
   align-items: center;
-  padding: 5rpx 0;
-  color: #000000;
+  padding: 8rpx 0 6rpx;
+  box-shadow: 0 -8rpx 24rpx rgba(15, 23, 42, 0.08);
   z-index: 1000;
-  background-color: #ffffff;
-  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(16rpx);
 }
 
-.tabbar-container .tabbar-item {
-  width: 20%;
-  height: 100rpx;
+.tabbar-item {
+  height: 104rpx;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  color: #6b7280;
+  transition: color 0.18s ease;
+}
+
+.tabbar-item-active {
+  color: #a60000;
+}
+
+.item-top {
+  width: 52rpx;
+  height: 52rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.item-bottom {
+  width: 100%;
+  margin-top: 6rpx;
+  font-size: 20rpx;
+  line-height: 1;
   text-align: center;
-}
-
-.tabbar-container .item-active {
-  color: #27A046;
-}
-
-.tabbar-container .center-item {
-  display: block;
-  position: relative;
-  box-sizing: border-box;
-}
-
-.tabbar-container .tabbar-item .item-top {
-  width: 80rpx;
-  height: 80rpx;
-  padding: 10rpx;
-}
-
-.tabbar-container .center-item .item-top {
-  flex-shrink: 0;
-  width: 100rpx;
-  height: 100rpx;
-  position: absolute;
-  top: -50rpx;
-  left: calc(50% - 50rpx);
-  border-radius: 50%;
-  background-color: #ffffff;
-}
-
-.tabbar-container .tabbar-item .item-top image {
-  width: 100%;
-  height: 100%;
-}
-
-.tabbar-container .tabbar-item .item-bottom {
-  font-size: 28rpx;
-  width: 100%;
-}
-
-.tabbar-container .center-item .item-bottom {
-  position: absolute;
-  bottom: 5rpx;
 }
 </style>
