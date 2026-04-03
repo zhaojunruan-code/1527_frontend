@@ -14,16 +14,16 @@
           <view class="header-content">
             <view class="header-safe-area" :style="{ height: `${safeAreaTop}px` }" />
             <view class="header-inner">
-              <image class="header-logo" src="/static/images/app-logo.png" mode="aspectFit" />
+              <image class="header-logo" :src="projectLogo" mode="aspectFit" />
               <text class="header-title">我的</text>
             </view>
 
             <view class="profile-card">
-              <image class="avatar" src="https://picsum.photos/seed/user123/100/100" mode="aspectFill" />
+              <image class="avatar" :src="displayAvatar" mode="aspectFill" />
               <view class="profile-text">
-                <text class="nickname">潮汕游客_8899</text>
-                <text class="phone">138****5678</text>
-                <text class="profile-desc">探索潮汕英歌、包车、导游与目的地服务</text>
+                <text class="nickname">{{ displayNickname }}</text>
+                <text class="phone">{{ displayPhone }}</text>
+                <text class="profile-desc">{{ profileDesc }}</text>
               </view>
             </view>
           </view>
@@ -43,40 +43,14 @@
           </view>
 
           <view class="order-grid">
-            <view class="order-item" @click="goOrderList('pending_payment')">
-              <view class="grid-icon-wrap icon-yellow">
-                <image class="order-icon-svg" src="/static/icons/lucide/wallet/8a6a00.png" mode="aspectFit" />
+            <view v-for="item in orderItems" :key="item.tab" class="order-item" @click="goOrderList(item.tab)">
+              <view class="grid-icon-wrap" :class="item.iconClass">
+                <image class="order-icon-svg" :src="item.iconSrc" mode="aspectFit" />
               </view>
-              <text class="order-label">待支付</text>
-              <view class="badge" />
-            </view>
-
-            <view class="order-item" @click="goOrderList('pending_service')">
-              <view class="grid-icon-wrap icon-blue">
-                <image class="order-icon-svg" src="/static/icons/lucide/clock/1565c0.png" mode="aspectFit" />
+              <text class="order-label">{{ item.label }}</text>
+              <view v-if="item.count > 0" class="badge">
+                <text class="badge-text">{{ item.count > 99 ? "99+" : item.count }}</text>
               </view>
-              <text class="order-label">待服务</text>
-            </view>
-
-            <view class="order-item" @click="goOrderList('completed')">
-              <view class="grid-icon-wrap icon-green">
-                <image class="order-icon-svg" src="/static/icons/lucide/circle-check/2e7d32.png" mode="aspectFit" />
-              </view>
-              <text class="order-label">已完成</text>
-            </view>
-
-            <view class="order-item" @click="goOrderList('cancelled')">
-              <view class="grid-icon-wrap icon-gray">
-                <image class="order-icon-svg" src="/static/icons/lucide/circle-x/616161.png" mode="aspectFit" />
-              </view>
-              <text class="order-label">已取消</text>
-            </view>
-
-            <view class="order-item" @click="goOrderList('refund')">
-              <view class="grid-icon-wrap icon-purple">
-                <image class="order-icon-svg" src="/static/icons/lucide/refresh-ccw/7b1fa2.png" mode="aspectFit" />
-              </view>
-              <text class="order-label">退款售后</text>
             </view>
           </view>
         </view>
@@ -161,8 +135,8 @@
           <image class="modal-phone-svg" src="/static/icons/lucide/phone/a60000.png" mode="aspectFit" />
         </view>
         <text class="modal-title">联系我们</text>
-        <text class="modal-desc">客服工作时间：09:00 - 22:00</text>
-        <text class="modal-phone">400-123-4567</text>
+        <text class="modal-desc">{{ contactDescription }}</text>
+        <text class="modal-phone">{{ contactPhoneText }}</text>
         <view class="modal-buttons">
           <view class="modal-btn modal-btn-cancel" @click="showContact = false">
             <text class="btn-cancel-text">取消</text>
@@ -179,11 +153,91 @@
 </template>
 
 <script setup>
+import { getUserInfo } from '@/api/common'
+import { getTravelOrderList } from '@/api/travel'
 import CustomTabbar from '@/components/CustomTabbar/index.vue'
+import { useSiteConfigStore } from '@/store/useSiteConfigStore'
 import { useTabbarStore } from '@/store/useTabbarStore'
+import { useUserStore } from '@/store/useUserStore'
+import { extractTravelOrderList, normalizeTravelOrderStatus } from '@/utils/order'
+import {
+  DEFAULT_CONTACT_PHONE,
+  DEFAULT_CONTACT_SERVICE_TIME,
+  DEFAULT_CONTACT_US,
+  DEFAULT_PROJECT_LOGO,
+} from '@/utils/siteConfig'
 
+const siteConfigStore = useSiteConfigStore()
 const tabbarStore = useTabbarStore()
+const userStore = useUserStore()
 const safeAreaTop = ref(0)
+const profileInfo = ref({
+  ...userStore.userInfo,
+})
+const showContact = ref(false)
+
+const profileDesc = '探索潮汕英歌、包车、导游与目的地服务'
+const defaultAvatar = 'https://picsum.photos/seed/user123/100/100'
+
+const getInitialOrderStats = () => ({
+  pending_payment: 0,
+  pending_service: 0,
+  completed: 0,
+  cancelled: 0,
+  refund: 0,
+})
+
+const orderStats = ref(getInitialOrderStats())
+
+const orderItems = computed(() => [
+  {
+    tab: 'pending_payment',
+    label: '待支付',
+    iconClass: 'icon-yellow',
+    iconSrc: '/static/icons/lucide/wallet/8a6a00.png',
+    count: orderStats.value.pending_payment,
+  },
+  {
+    tab: 'pending_service',
+    label: '待服务',
+    iconClass: 'icon-blue',
+    iconSrc: '/static/icons/lucide/clock/1565c0.png',
+    count: orderStats.value.pending_service,
+  },
+  {
+    tab: 'completed',
+    label: '已完成',
+    iconClass: 'icon-green',
+    iconSrc: '/static/icons/lucide/circle-check/2e7d32.png',
+    count: orderStats.value.completed,
+  },
+  {
+    tab: 'cancelled',
+    label: '已取消',
+    iconClass: 'icon-gray',
+    iconSrc: '/static/icons/lucide/circle-x/616161.png',
+    count: orderStats.value.cancelled,
+  },
+  {
+    tab: 'refund',
+    label: '退款售后',
+    iconClass: 'icon-purple',
+    iconSrc: '/static/icons/lucide/refresh-ccw/7b1fa2.png',
+    count: orderStats.value.refund,
+  },
+])
+
+const displayNickname = computed(() => {
+  return profileInfo.value.nickname || profileInfo.value.username || formatPhone(profileInfo.value.phone) || '潮汕游客'
+})
+const displayAvatar = computed(() => profileInfo.value.avatar || defaultAvatar)
+const displayPhone = computed(() => formatPhone(profileInfo.value.phone))
+const projectLogo = computed(() => siteConfigStore.logoUrl || DEFAULT_PROJECT_LOGO)
+const contactPhone = computed(() => siteConfigStore.contactPhone || DEFAULT_CONTACT_PHONE)
+const contactPhoneText = computed(() => siteConfigStore.contactDisplay || DEFAULT_CONTACT_US)
+const contactDescription = computed(() => {
+  return siteConfigStore.contactUs ? '客服电话' : `客服工作时间：${DEFAULT_CONTACT_SERVICE_TIME}`
+})
 
 onMounted(() => {
   const { statusBarHeight } = uni.getSystemInfoSync()
@@ -191,7 +245,65 @@ onMounted(() => {
   tabbarStore.tabbarIndex = 4
 })
 
-const showContact = ref(false)
+onShow(async () => {
+  tabbarStore.tabbarIndex = 4
+  await Promise.allSettled([loadUserProfile(), loadOrderStats(), siteConfigStore.loadSiteConfig()])
+})
+
+const formatPhone = (phone) => {
+  const phoneText = String(phone || '').trim()
+  if (!phoneText) {
+    return '暂未绑定手机号'
+  }
+
+  if (/^\d{11}$/.test(phoneText)) {
+    return `${phoneText.slice(0, 3)}****${phoneText.slice(-4)}`
+  }
+
+  return phoneText
+}
+
+const loadUserProfile = async () => {
+  const response = await getUserInfo()
+  const rawUserInfo = response.data?.userinfo || response.data
+
+  if (response.code === 200 && rawUserInfo) {
+    const normalizedUserInfo = {
+      ...rawUserInfo,
+      phone: rawUserInfo.phone || rawUserInfo.mobile || '',
+    }
+
+    profileInfo.value = {
+      ...profileInfo.value,
+      ...normalizedUserInfo,
+    }
+
+    userStore.setUserInfo(normalizedUserInfo)
+
+    if (normalizedUserInfo.token) {
+      userStore.setToken(normalizedUserInfo.token)
+    }
+  }
+}
+
+const loadOrderStats = async () => {
+  const response = await getTravelOrderList()
+  if (response.code !== 200) {
+    return
+  }
+
+  const nextStats = getInitialOrderStats()
+  const list = extractTravelOrderList(response)
+
+  list.forEach((order) => {
+    const normalizedStatus = normalizeTravelOrderStatus(order)
+    if (Object.prototype.hasOwnProperty.call(nextStats, normalizedStatus)) {
+      nextStats[normalizedStatus] += 1
+    }
+  })
+
+  orderStats.value = nextStats
+}
 
 const goOrderList = (tab) => {
   uni.navigateTo({ url: `/pages/order-list/index?tab=${tab}` })
@@ -202,7 +314,7 @@ const goPage = (url) => {
 }
 
 const callPhone = () => {
-  uni.makePhoneCall({ phoneNumber: '4001234567' })
+  uni.makePhoneCall({ phoneNumber: contactPhone.value })
   showContact.value = false
 }
 </script>
@@ -401,13 +513,24 @@ const callPhone = () => {
 
 .badge {
   position: absolute;
-  top: 0;
-  right: 18rpx;
-  width: 16rpx;
-  height: 16rpx;
+  top: -8rpx;
+  right: 0;
+  min-width: 32rpx;
+  height: 32rpx;
+  padding: 0 8rpx;
   background: #ff0000;
-  border-radius: 50%;
+  border-radius: 999rpx;
   border: 2rpx solid #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.badge-text {
+  font-size: 18rpx;
+  line-height: 1;
+  color: #ffffff;
 }
 
 .icon-yellow {

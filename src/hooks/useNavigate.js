@@ -1,4 +1,3 @@
-import { useRouteCacheStore } from "@/store/useRouteCacheStore";
 
 /**
  * useNavigate 导航工具 Hook
@@ -61,8 +60,7 @@ export const useNavigate = (path, params = {}) => {
 };
 
 export const useSwitchTab = (path, params = {}) => {
-  const { onSaveRouteCache } = useRouteCacheStore();
-  onSaveRouteCache({
+  uni.setStorageSync(`route-cache:${path}`, {
     key: path,
     data: params
   });

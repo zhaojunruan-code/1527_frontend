@@ -1,15 +1,20 @@
 import { defineStore } from "pinia"
+import { getTravelDebugToken } from "@/api/travel"
+
+const getInitialUserInfo = () => ({
+  user_id: "",
+  nickname: "",
+  avatar: "",
+  phone: "",
+  openid: "",
+  role: "patient",
+  token: "",
+})
 
 export const useUserStore = defineStore("user", {
   state: () => ({
-    // TODO 根据自己项目拓展
-    userInfo: {
-      nickname: "",
-      avatar: "",
-      openid: "",
-      role: "patient",
-    },
-    token: null,
+    userInfo: getInitialUserInfo(),
+    token: "",
   }),
 
   getters: {
@@ -19,38 +24,36 @@ export const useUserStore = defineStore("user", {
     isDoctor: (state) => state.userInfo.role === "doctor",
     isPatient: (state) => state.userInfo.role === "patient",
   },
-  actions: {
-    // 登录
-    async onLogin(fromData) {
-      //TODO 这里换成你的项目的登录接口
-      //const r = await onUserLogin(fromData)
 
-      //if (r.code === 200) {
-      //  this.setToken(r.data.token)
-      //
-      //  await this.setUserInfo()
-      //} else {
-      //  useToast(r.msg || "登录失败")
-      //}
+  actions: {
+    async onLogin(params = { user_id: 1 }) {
+      const response = await getTravelDebugToken(params)
+
+      if (response.code === 200) {
+        this.setToken(response.data)
+        this.setUserInfo({
+          user_id: params.user_id,
+        })
+      }
+
+      return response
     },
     setToken(value) {
-      this.token = value
+      this.token = value || ""
+      this.userInfo = {
+        ...this.userInfo,
+        token: value || "",
+      }
     },
-    // 刷新用户信息
-    async setUserInfo() {
-      const res = await onGetUserInfo()
-      if (res.code == 200) {
-        this.userInfo = res.data
+    setUserInfo(value = {}) {
+      this.userInfo = {
+        ...this.userInfo,
+        ...value,
       }
     },
     clearUserInfo() {
-      this.userInfo = {
-        nickname: "",
-        avatar: "",
-        openid: "",
-        role: "patient",
-      }
-      this.token = null;
+      this.userInfo = getInitialUserInfo()
+      this.token = ""
     },
     setUserRole(role) {
       this.userInfo.role = role

@@ -1,57 +1,105 @@
 <template>
   <view class="page">
-    <!-- Header -->
-    <view class="header">
-      <view class="back-btn" @click="goBack">
-        <text class="back-arrow">←</text>
+    <wd-navbar fixed placeholder :title="pageTitle" left-arrow safeAreaInsetTop @click-left="goBack" />
+
+    <view class="search-wrap">
+      <view class="search-bar">
+        <AppIcon class="search-icon" name="search" size="18" color="#9ca3af" />
+        <input
+          v-model.trim="searchText"
+          class="search-input"
+          type="text"
+          placeholder="搜索服务、导览、行程..."
+          confirm-type="search"
+          @confirm="handleSearch"
+        />
+        <text v-if="searchText" class="search-clear" @click="clearSearch">清空</text>
       </view>
-      <text class="header-title">推荐服务</text>
-      <view class="header-placeholder" />
     </view>
 
-    <!-- Service Grid -->
     <view class="grid">
       <view
-        class="card"
-        v-for="item in services"
+        v-for="item in serviceListData.list"
         :key="item.id"
+        class="card"
         @click="goDetail(item)"
       >
-        <image class="card-img" :src="item.img" mode="aspectFill" />
+        <image class="card-img" :src="item.image" mode="aspectFill" />
         <view class="card-info">
           <text class="card-title">{{ item.title }}</text>
-          <text class="card-date">{{ item.date }}</text>
+          <rich-text class="card-content" :nodes="item.content" />
         </view>
+      </view>
+
+      <view v-if="!serviceListData.list.length" class="empty-card">
+        <text class="empty-text">{{ searchText ? "未找到相关服务" : "暂无服务数据" }}</text>
       </view>
     </view>
   </view>
 </template>
 
 <script setup>
-import { useNavStore } from '@/store/useNavStore'
+import { onLoad } from "@dcloudio/uni-app"
+import { getTravelServiceList } from "@/api/travel"
+import AppIcon from "@/components/AppIcon.vue"
+import { useNavStore } from "@/store/useNavStore"
 
 const navStore = useNavStore()
+const searchText = ref("")
+const serviceListData = ref({
+  list: [],
+  total: 0,
+})
 
-const services = [
-  { id: 1, title: '南澳岛一日游', date: '2026-03-21', img: 'https://picsum.photos/seed/nanao/300/400' },
-  { id: 2, title: '潮州古城深度游', date: '2026-03-20', img: 'https://picsum.photos/seed/chaozhou/300/400' },
-  { id: 3, title: '汕头美食专车', date: '2026-03-19', img: 'https://picsum.photos/seed/food/300/400' },
-  { id: 4, title: '普宁英歌舞观赏专线', date: '2026-03-18', img: 'https://picsum.photos/seed/yingge/300/400' },
-  { id: 5, title: '揭阳进贤门夜游', date: '2026-03-15', img: 'https://picsum.photos/seed/jieyang/300/400' },
-  { id: 6, title: '潮汕非遗文化体验', date: '2026-03-10', img: 'https://picsum.photos/seed/culture/300/400' },
-]
+const pageTitle = computed(() => (searchText.value.trim() ? "搜索服务" : "推荐服务"))
+
+const normalizeListData = (response) => {
+  if (Array.isArray(response?.data)) {
+    return {
+      list: response.data,
+      total: response.data.length,
+    }
+  }
+
+  return {
+    list: Array.isArray(response?.data?.list) ? response.data.list : [],
+    total: Number(response?.data?.total) || 0,
+  }
+}
+
+const loadServiceList = async () => {
+  const response = await getTravelServiceList({
+    page: 1,
+    rows: 100,
+    keywords: searchText.value.trim(),
+  })
+
+  if (response.code === 200) {
+    serviceListData.value = normalizeListData(response)
+  }
+}
+
+const handleSearch = async () => {
+  await loadServiceList()
+}
+
+const clearSearch = async () => {
+  searchText.value = ""
+  await loadServiceList()
+}
+
+onLoad(async (options) => {
+  searchText.value = decodeURIComponent(options?.keywords || "")
+  await loadServiceList()
+})
 
 const goBack = () => {
   uni.navigateBack()
 }
 
 const goDetail = (item) => {
-  navStore.setParams({
-    title: item.title,
-    date: item.date,
-    img: item.img,
-  })
-  uni.navigateTo({ url: '/pages/service-detail/index' })
+  navStore.setParams(item)
+  uni.navigateTo({ url: `/pages/service-detail/index?id=${item.id}` })
 }
 </script>
 
@@ -61,47 +109,44 @@ const goDetail = (item) => {
   background: #f5f5f5;
 }
 
-.header {
+.search-wrap {
+  padding: 20rpx;
+}
+
+.search-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 30rpx;
-  height: 88rpx;
   background: #ffffff;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  padding-top: env(safe-area-inset-top);
+  border-radius: 999rpx;
+  padding: 18rpx 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(15, 23, 42, 0.04);
 }
 
-.back-btn {
-  width: 60rpx;
-  height: 60rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.search-icon {
+  width: 34rpx;
+  height: 34rpx;
+  flex-shrink: 0;
 }
 
-.back-arrow {
-  font-size: 36rpx;
-  color: #333333;
-  font-weight: bold;
+.search-input {
+  flex: 1;
+  margin-left: 12rpx;
+  font-size: 26rpx;
+  color: #1f2937;
+  background: transparent;
 }
 
-.header-title {
-  font-size: 34rpx;
-  font-weight: bold;
-  color: #1a1a1a;
-}
-
-.header-placeholder {
-  width: 60rpx;
+.search-clear {
+  flex-shrink: 0;
+  margin-left: 12rpx;
+  font-size: 24rpx;
+  color: #9ca3af;
 }
 
 .grid {
   display: flex;
   flex-wrap: wrap;
-  padding: 20rpx;
+  padding: 0 20rpx 20rpx;
   gap: 20rpx;
 }
 
@@ -133,9 +178,29 @@ const goDetail = (item) => {
   white-space: nowrap;
 }
 
-.card-date {
+.card-content {
   display: block;
   font-size: 24rpx;
-  color: #999999;
+  color: #6b7280;
+  line-height: 1.6;
+}
+
+.card-content :deep(p) {
+  margin: 0;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.empty-card {
+  width: 100%;
+  padding: 120rpx 0;
+  text-align: center;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #9ca3af;
 }
 </style>

@@ -26,6 +26,7 @@ import houseRed from '@/static/icons/lucide/house/a60000.png'
 import houseGray from '@/static/icons/lucide/house/6b7280.png'
 import infoBlue from '@/static/icons/lucide/info/2196f3.png'
 import mailGreen from '@/static/icons/lucide/mail/4caf50.png'
+import mapPinRed from '@/static/icons/lucide/map-pin/a60000.png'
 import mapPinGray from '@/static/icons/lucide/map-pin/9ca3af.png'
 import mapRed from '@/static/icons/lucide/map/a60000.png'
 import mapGray from '@/static/icons/lucide/map/6b7280.png'
@@ -57,6 +58,7 @@ const iconAssetMap = {
   'house/a60000': houseRed,
   'info/2196f3': infoBlue,
   'mail/4caf50': mailGreen,
+  'map-pin/a60000': mapPinRed,
   'map-pin/9ca3af': mapPinGray,
   'map/6b7280': mapGray,
   'map/a60000': mapRed,

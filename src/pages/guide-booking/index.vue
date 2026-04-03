@@ -1,148 +1,232 @@
 <template>
   <view class="page">
-    <!-- Header -->
     <wd-navbar fixed placeholder title="预约导游" left-arrow safeAreaInsetTop @click-left="goBack"></wd-navbar>
 
-    <!-- Guide Info Card -->
     <view class="guide-card">
-      <image class="guide-avatar" :src="params.img || 'https://picsum.photos/seed/avatar/200/200'" mode="aspectFill" />
+      <image class="guide-avatar" :src="detail.avatar || 'https://picsum.photos/seed/avatar/200/200'" mode="aspectFill" />
       <view class="guide-info">
-        <text class="guide-name">{{ params.name || '导游' }}</text>
+        <text class="guide-name">{{ detail.name || "导游" }}</text>
         <text class="guide-label">专业认证导游</text>
       </view>
     </view>
 
-    <!-- Booking Type -->
     <view class="section">
       <text class="section-title">预约类型</text>
       <view class="type-cards">
         <view
           class="type-card"
-          :class="{ 'type-active': bookingType === 'fullday' }"
-          @click="bookingType = 'fullday'"
+          :class="{ 'type-active': bookingType === 'day' }"
+          @click="bookingType = 'day'"
         >
           <text class="type-name">全天预约</text>
-          <text class="type-price">¥300<text class="type-unit">/天</text></text>
+          <text class="type-price">¥{{ detail.dayprice || 0 }}<text class="type-unit">/天</text></text>
         </view>
         <view
           class="type-card"
-          :class="{ 'type-active': bookingType === 'hourly' }"
-          @click="bookingType = 'hourly'"
+          :class="{ 'type-active': bookingType === 'hour' }"
+          @click="bookingType = 'hour'"
         >
           <text class="type-name">按小时预约</text>
-          <text class="type-price">¥50<text class="type-unit">/小时</text></text>
+          <text class="type-price">¥{{ detail.hourprice || 0 }}<text class="type-unit">/小时</text></text>
         </view>
       </view>
     </view>
 
-    <!-- Date Selection -->
     <view class="section">
       <text class="section-title">选择日期</text>
       <scroll-view scroll-x class="date-scroll">
         <view class="date-row">
           <view
+            v-for="(day, idx) in detail.timeslot_list || []"
+            :key="idx"
             class="date-item"
             :class="{ 'date-active': selectedDate === idx }"
-            v-for="(day, idx) in dateOptions"
-            :key="idx"
             @click="selectedDate = idx"
           >
-            <text class="date-label">{{ day.label }}</text>
-            <text class="date-value">{{ day.date }}</text>
+            <text class="date-label">{{ day.date }}</text>
           </view>
         </view>
       </scroll-view>
     </view>
 
-    <!-- Time Slot Grid (hourly only) -->
-    <view class="section" v-if="bookingType === 'hourly'">
-      <text class="section-title">选择时间段</text>
+    <view v-if="currentSlots.length" class="section">
+      <text class="section-title">{{ bookingType === 'day' ? '选择可预约时段' : '选择时间段' }}</text>
       <view class="time-grid">
         <view
-          class="time-slot"
-          :class="{ 'time-selected': selectedHours.includes(idx) }"
-          v-for="(slot, idx) in timeSlots"
+          v-for="(slot, idx) in currentSlots"
           :key="idx"
-          @click="toggleHour(idx)"
+          class="time-slot"
+          :class="{ 'time-selected': isSlotSelected(idx) }"
+          @click="selectSlot(idx)"
         >
           <text class="time-text">{{ slot }}</text>
         </view>
       </view>
     </view>
 
-    <!-- Spacer for bottom bar -->
     <view class="bottom-spacer" />
 
-    <!-- Bottom Bar -->
     <view class="bottom-bar">
       <view class="price-info">
         <text class="price-label">合计</text>
         <text class="price-amount">¥{{ totalPrice }}</text>
       </view>
-      <view class="confirm-btn" @click="confirmBooking">
-        <text class="confirm-btn-text">确认预约</text>
+      <view class="confirm-btn" :class="{ 'confirm-btn-disabled': submitting }" @click="confirmBooking">
+        <text class="confirm-btn-text">{{ submitting ? "submitting..." : "确认预约" }}</text>
       </view>
     </view>
   </view>
 </template>
 
 <script setup>
-import { onLoad } from '@dcloudio/uni-app'
-import { useNavStore } from '@/store/useNavStore'
+import { onLoad } from "@dcloudio/uni-app"
+import { getTravelGuideDetail, postTravelCreateBooking } from "@/api/travel"
 
-const navStore = useNavStore()
-const params = ref({})
-
-const bookingType = ref('fullday')
+const detail = ref({})
+const bookingType = ref("day")
 const selectedDate = ref(0)
+const selectedDaySlot = ref(0)
 const selectedHours = ref([])
+const guideId = ref("")
+const submitting = ref(false)
 
-const dateOptions = [
-  { label: '今天', date: '03-23' },
-  { label: '明天', date: '03-24' },
-  { label: '后天', date: '03-25' },
-]
-
-const timeSlots = [
-  '09:00-10:00',
-  '10:00-11:00',
-  '11:00-12:00',
-  '12:00-13:00',
-  '13:00-14:00',
-  '14:00-15:00',
-  '15:00-16:00',
-  '16:00-17:00',
-  '17:00-18:00',
-  '18:00-19:00',
-  '19:00-20:00',
-  '20:00-21:00',
-  '21:00-22:00',
-]
+const currentSlots = computed(() => detail.value.timeslot_list?.[selectedDate.value]?.slots || [])
+const currentDate = computed(() => detail.value.timeslot_list?.[selectedDate.value]?.date || "")
+const sortedSelectedHours = computed(() => [...selectedHours.value].sort((a, b) => a - b))
+const selectedTimeslotList = computed(() => sortedSelectedHours.value.map((idx) => currentSlots.value[idx]).filter(Boolean))
 
 const totalPrice = computed(() => {
-  if (bookingType.value === 'fullday') return 300
-  return selectedHours.value.length * 50
+  if (bookingType.value === "day") {
+    return Number(detail.value.dayprice || 0)
+  }
+
+  return selectedHours.value.length * Number(detail.value.hourprice || 0)
 })
 
-const toggleHour = (idx) => {
-  const i = selectedHours.value.indexOf(idx)
-  if (i === -1) {
-    selectedHours.value.push(idx)
-  } else {
-    selectedHours.value.splice(i, 1)
+const isSlotSelected = (idx) => {
+  if (bookingType.value === "day") {
+    return selectedDaySlot.value === idx
   }
+
+  return selectedHours.value.includes(idx)
 }
 
-const confirmBooking = () => {
-  if (bookingType.value === 'hourly' && selectedHours.value.length === 0) {
-    uni.showToast({ title: '请选择时间段', icon: 'none' })
+const selectSlot = (idx) => {
+  if (bookingType.value === "day") {
+    selectedDaySlot.value = idx
     return
   }
-  uni.showToast({ title: '预约成功！', icon: 'success' })
+
+  toggleHour(idx)
 }
 
-onLoad(() => {
-  params.value = navStore.params || {}
+const toggleHour = (idx) => {
+  const currentIndex = selectedHours.value.indexOf(idx)
+  if (currentIndex === -1) {
+    selectedHours.value.push(idx)
+    return
+  }
+
+  selectedHours.value.splice(currentIndex, 1)
+}
+
+const loadDetail = async () => {
+  if (!guideId.value) {
+    return
+  }
+
+  const response = await getTravelGuideDetail({ id: guideId.value })
+  if (response.code === 200 && response.data) {
+    detail.value = response.data
+  }
+}
+
+const getFormattedServiceDate = () => {
+  if (!currentDate.value) {
+    return ""
+  }
+
+  return `${currentDate.value} 00:00:00`
+}
+
+const confirmBooking = async () => {
+  if (submitting.value) {
+    return
+  }
+
+  if (!guideId.value) {
+    uni.showToast({ title: "guide_id missing", icon: "none" })
+    return
+  }
+
+  if (!currentDate.value) {
+    uni.showToast({ title: "请选择日期", icon: "none" })
+    return
+  }
+
+  let timeslot = ""
+
+  if (bookingType.value === "hour") {
+    if (selectedHours.value.length === 0) {
+      uni.showToast({ title: "请选择时间段", icon: "none" })
+      return
+    }
+
+    timeslot = selectedTimeslotList.value.join(",")
+  } else {
+    timeslot = currentSlots.value[selectedDaySlot.value] || currentSlots.value[0] || ""
+  }
+
+  if (!timeslot) {
+    uni.showToast({ title: "timeslot missing", icon: "none" })
+    return
+  }
+
+  const servicetime = getFormattedServiceDate()
+  if (!servicetime) {
+    uni.showToast({ title: "servicetime missing", icon: "none" })
+    return
+  }
+
+  submitting.value = true
+
+  try {
+    const response = await postTravelCreateBooking({
+      guide_id: guideId.value,
+      servicetime,
+      timeslot,
+      booktype: bookingType.value,
+    })
+
+    if (response.code === 200) {
+      uni.showToast({ title: response.msg || "success", icon: "success" })
+      return
+    }
+
+    uni.showToast({ title: response.msg || "submit failed", icon: "none" })
+  } catch (error) {
+    console.error(error)
+    uni.showToast({ title: error?.message || "submit failed", icon: "none" })
+  } finally {
+    submitting.value = false
+  }
+}
+
+watch(selectedDate, () => {
+  selectedDaySlot.value = 0
+  selectedHours.value = []
+})
+
+watch(bookingType, (value) => {
+  if (value === "day") {
+    selectedHours.value = []
+    selectedDaySlot.value = 0
+  }
+})
+
+onLoad(async (options) => {
+  guideId.value = options?.id || ""
+  await loadDetail()
 })
 
 const goBack = () => {
@@ -154,43 +238,6 @@ const goBack = () => {
 .page {
   min-height: 100vh;
   background: #f5f5f5;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 30rpx;
-  height: 88rpx;
-  background: #ffffff;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  padding-top: env(safe-area-inset-top);
-}
-
-.back-btn {
-  width: 60rpx;
-  height: 60rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.back-arrow {
-  font-size: 36rpx;
-  color: #333333;
-  font-weight: bold;
-}
-
-.header-title {
-  font-size: 34rpx;
-  font-weight: bold;
-  color: #1a1a1a;
-}
-
-.header-placeholder {
-  width: 60rpx;
 }
 
 .guide-card {
@@ -310,17 +357,7 @@ const goBack = () => {
   font-weight: bold;
 }
 
-.date-value {
-  font-size: 24rpx;
-  color: #999999;
-  margin-top: 4rpx;
-}
-
 .date-active .date-label {
-  color: #a60000;
-}
-
-.date-active .date-value {
   color: #a60000;
 }
 
@@ -398,6 +435,10 @@ const goBack = () => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.confirm-btn-disabled {
+  background: #d1d5db;
 }
 
 .confirm-btn-text {

@@ -51,13 +51,13 @@
 
             <view class="form-group">
               <text class="field-label">选择车型</text>
-              <picker :range="vehicleOptions" :value="vehiclePickerValue" @change="handleVehicleChange">
+              <picker :range="vehiclePickerRange" :value="vehiclePickerValue" @change="handleVehicleChange">
                 <view class="picker-field">
                   <text
                     class="picker-text"
-                    :class="{ 'picker-placeholder': selectedVehicle === '' }"
+                    :class="{ 'picker-placeholder': !selectedVehicle }"
                   >
-                    {{ selectedVehicle || '请选择车型' }}
+                    {{ selectedVehicle?.name || "请选择车型" }}
                   </text>
                 </view>
               </picker>
@@ -66,7 +66,7 @@
             <view class="form-group">
               <text class="field-label">目的地/行程</text>
               <picker
-                :range="destinationOptions"
+                :range="destinationPickerRange"
                 :value="destinationPickerValue"
                 @change="handleDestinationChange"
               >
@@ -74,9 +74,9 @@
                   <AppIcon class="field-icon" name="map-pin" size="16" color="#9ca3af" />
                   <text
                     class="picker-text"
-                    :class="{ 'picker-placeholder': selectedDestination === '' }"
+                    :class="{ 'picker-placeholder': !selectedDestination }"
                   >
-                    {{ selectedDestination || '请选择目的地或行程安排' }}
+                    {{ selectedDestination?.name || "请选择目的地或行程安排" }}
                   </text>
                 </view>
               </picker>
@@ -93,7 +93,7 @@
                         class="picker-text"
                         :class="{ 'picker-placeholder': !appointmentDate }"
                       >
-                        {{ appointmentDate || '选择日期' }}
+                        {{ appointmentDate || "选择日期" }}
                       </text>
                     </view>
                   </picker>
@@ -106,7 +106,7 @@
                         class="picker-text"
                         :class="{ 'picker-placeholder': !appointmentTime }"
                       >
-                        {{ appointmentTime || '选择时间' }}
+                        {{ appointmentTime || "选择时间" }}
                       </text>
                     </view>
                   </picker>
@@ -126,34 +126,34 @@
 
               <view
                 class="order-button"
-                :class="{ 'order-button-disabled': computedPrice === null }"
+                :class="{ 'order-button-disabled': computedPrice === null || submitting }"
                 @click="handleOrder"
               >
-                <text class="order-button-text">立即下单</text>
+                <text class="order-button-text">{{ submitting ? "submitting..." : "立即下单" }}</text>
               </view>
             </view>
           </view>
 
           <view class="contact-button" @click="goChat">
             <AppIcon class="phone-icon" name="phone" size="16" color="#a60000" />
-            <text class="contact-button-text">联系客服定制行程</text>
+            <text class="contact-button-text">联系客制定制行程</text>
           </view>
         </view>
 
         <view v-else class="guide-grid">
           <view
             v-for="guide in filteredGuides"
-            :key="guide.name"
+            :key="guide.id"
             class="guide-card"
             @click="goGuideDetail(guide)"
           >
-            <image class="guide-image" :src="guide.img" mode="aspectFill" />
+            <image class="guide-image" :src="guide.avatar" mode="aspectFill" />
             <view class="guide-content">
               <view>
                 <text class="guide-name">{{ guide.name }}</text>
                 <view class="guide-tags">
                   <text
-                    v-for="tag in guide.tags.slice(0, 2)"
+                    v-for="tag in guide.tagsjson_text || []"
                     :key="tag"
                     class="guide-tag"
                   >
@@ -161,7 +161,7 @@
                   </text>
                 </view>
               </view>
-              <text class="guide-orders">已售 {{ guide.orders }} 单</text>
+              <text class="guide-orders">¥{{ guide.hourprice }}/小时</text>
             </view>
           </view>
 
@@ -179,160 +179,219 @@
 </template>
 
 <script setup>
-import AppIcon from '@/components/AppIcon.vue'
-import CustomTabbar from '@/components/CustomTabbar/index.vue'
-import { useNavStore } from '@/store/useNavStore'
-import { useTabbarStore } from '@/store/useTabbarStore'
+import { getTravelDestinationList, getTravelGuideList, getTravelVehicleList, postTravelCreateCharter } from "@/api/travel"
+import AppIcon from "@/components/AppIcon.vue"
+import CustomTabbar from "@/components/CustomTabbar/index.vue"
+import { useTabbarStore } from "@/store/useTabbarStore"
 
 const tabbarStore = useTabbarStore()
-const navStore = useNavStore()
 const safeAreaTop = ref(0)
-
-const activeTab = ref('charter')
-const searchText = ref('')
+const activeTab = ref("charter")
+const searchText = ref("")
 const vehicleIndex = ref(-1)
 const destinationIndex = ref(-1)
-const appointmentDate = ref('')
-const appointmentTime = ref('')
+const appointmentDate = ref("")
+const appointmentTime = ref("")
+const destination_id = ref("")
+const vehicle_id = ref("")
+const servicetime = ref("")
+const submitting = ref(false)
+const vehicleListData = ref({ list: [] })
+const destinationListData = ref({ list: [] })
+const guideListData = ref({ list: [] })
+const charterLoaded = ref(false)
+const guideLoaded = ref(false)
+const charterLoading = ref(false)
+const guideLoading = ref(false)
 
-const vehicleOptions = [
-  '5座 经济型轿车',
-  '5座 舒适型轿车',
-  '7座 商务车 (别克GL8等)',
-  '14座 中巴车',
-]
+const loadCharterTabData = async () => {
+  if (charterLoaded.value || charterLoading.value) {
+    return
+  }
 
-const destinationOptions = [
-  '揭阳潮汕机场接送机',
-  '汕头站 -> 南澳岛',
-  '潮州古城一日游包车',
-  '汕头美食打卡专车',
-  '普宁英歌舞观赏专线',
-]
+  charterLoading.value = true
 
-const guides = [
-  {
-    name: '林导 (阿林)',
-    tags: ['潮汕土著', '美食活地图'],
-    orders: 128,
-    img: 'https://picsum.photos/seed/guide1/300/400',
-  },
-  {
-    name: '陈导 (小陈)',
-    tags: ['历史文化', '摄影跟拍'],
-    orders: 85,
-    img: 'https://picsum.photos/seed/guide2/300/400',
-  },
-  {
-    name: '黄导 (大黄)',
-    tags: ['南澳岛环岛', '赶海体验'],
-    orders: 204,
-    img: 'https://picsum.photos/seed/guide3/300/400',
-  },
-  {
-    name: '李导 (老李)',
-    tags: ['英歌舞解说', '非遗体验'],
-    orders: 312,
-    img: 'https://picsum.photos/seed/guide4/300/400',
-  },
-]
+  try {
+    const [vehicleResponse, destinationResponse] = await Promise.all([
+      getTravelVehicleList(),
+      getTravelDestinationList(),
+    ])
 
-onMounted(() => {
+    if (vehicleResponse.code === 200 && vehicleResponse.data) {
+      vehicleListData.value = vehicleResponse.data
+    }
+
+    if (destinationResponse.code === 200 && destinationResponse.data) {
+      destinationListData.value = destinationResponse.data
+    }
+
+    charterLoaded.value = true
+  } catch (error) {
+    console.error(error)
+  } finally {
+    charterLoading.value = false
+  }
+}
+
+const loadGuideTabData = async () => {
+  if (guideLoaded.value || guideLoading.value) {
+    return
+  }
+
+  guideLoading.value = true
+
+  try {
+    const guideResponse = await getTravelGuideList()
+
+    if (guideResponse.code === 200 && guideResponse.data) {
+      guideListData.value = guideResponse.data
+    }
+
+    guideLoaded.value = true
+  } catch (error) {
+    console.error(error)
+  } finally {
+    guideLoading.value = false
+  }
+}
+
+onMounted(async () => {
   const { statusBarHeight } = uni.getSystemInfoSync()
   safeAreaTop.value = statusBarHeight || 0
   tabbarStore.tabbarIndex = 1
+  await loadCharterTabData()
+})
+
+watch(activeTab, async (tab) => {
+  if (tab === "charter") {
+    await loadCharterTabData()
+    return
+  }
+
+  await loadGuideTabData()
 })
 
 const vehiclePickerValue = computed(() => (vehicleIndex.value >= 0 ? vehicleIndex.value : 0))
 const destinationPickerValue = computed(() => (destinationIndex.value >= 0 ? destinationIndex.value : 0))
+const vehiclePickerRange = computed(() => {
+  return Array.isArray(vehicleListData.value.list) ? vehicleListData.value.list.map((item) => item.name || "") : []
+})
+const destinationPickerRange = computed(() => {
+  return Array.isArray(destinationListData.value.list) ? destinationListData.value.list.map((item) => item.name || "") : []
+})
 
-const selectedVehicle = computed(() => (
-  vehicleIndex.value >= 0 ? vehicleOptions[vehicleIndex.value] : ''
-))
+const selectedVehicle = computed(() => {
+  return vehicleIndex.value >= 0 ? vehicleListData.value.list[vehicleIndex.value] : null
+})
 
-const selectedDestination = computed(() => (
-  destinationIndex.value >= 0 ? destinationOptions[destinationIndex.value] : ''
-))
+const selectedDestination = computed(() => {
+  return destinationIndex.value >= 0 ? destinationListData.value.list[destinationIndex.value] : null
+})
 
 const computedPrice = computed(() => {
   if (!selectedVehicle.value || !selectedDestination.value) {
     return null
   }
 
-  let basePrice = 0
-
-  if (selectedDestination.value.includes('接送机')) {
-    basePrice = 120
-  } else if (selectedDestination.value.includes('南澳岛')) {
-    basePrice = 300
-  } else if (selectedDestination.value.includes('一日游')) {
-    basePrice = 400
-  } else {
-    basePrice = 200
-  }
-
-  if (selectedVehicle.value.includes('舒适')) {
-    basePrice += 50
-  } else if (selectedVehicle.value.includes('商务')) {
-    basePrice += 150
-  } else if (selectedVehicle.value.includes('中巴')) {
-    basePrice += 300
-  }
-
-  return basePrice
+  return Number(selectedVehicle.value.price) + Number(selectedDestination.value.price)
 })
 
 const filteredGuides = computed(() => {
   const keyword = searchText.value.trim().toLowerCase()
   if (!keyword) {
-    return guides
+    return guideListData.value.list
   }
 
-  return guides.filter((guide) => {
-    const joinedTags = guide.tags.join(' ')
-    return `${guide.name} ${joinedTags}`.toLowerCase().includes(keyword)
+  return guideListData.value.list.filter((guide) => {
+    return `${guide.name} ${(guide.tagsjson_text || []).join(" ")}`.toLowerCase().includes(keyword)
   })
 })
 
 const handleVehicleChange = (event) => {
   vehicleIndex.value = Number(event.detail.value)
+  vehicle_id.value = vehicleListData.value.list[vehicleIndex.value]?.id || ""
 }
 
 const handleDestinationChange = (event) => {
   destinationIndex.value = Number(event.detail.value)
+  destination_id.value = destinationListData.value.list[destinationIndex.value]?.id || ""
+}
+
+const updateServicetime = () => {
+  if (!appointmentDate.value || !appointmentTime.value) {
+    servicetime.value = ""
+    return
+  }
+
+  servicetime.value = `${appointmentDate.value} ${appointmentTime.value}:00`
 }
 
 const handleDateChange = (event) => {
   appointmentDate.value = event.detail.value
+  updateServicetime()
 }
 
 const handleTimeChange = (event) => {
   appointmentTime.value = event.detail.value
+  updateServicetime()
 }
 
-const handleOrder = () => {
-  if (computedPrice.value === null) {
+const handleOrder = async () => {
+  if (computedPrice.value === null || submitting.value) {
     return
   }
 
-  uni.showToast({
-    title: '行程需求已生成',
-    icon: 'success',
-  })
+  if (!vehicle_id.value) {
+    uni.showToast({ title: "please select vehicle_id", icon: "none" })
+    return
+  }
+
+  if (!destination_id.value) {
+    uni.showToast({ title: "please select destination_id", icon: "none" })
+    return
+  }
+
+  if (!servicetime.value) {
+    uni.showToast({ title: "please select servicetime", icon: "none" })
+    return
+  }
+
+  submitting.value = true
+
+  try {
+    const response = await postTravelCreateCharter({
+      destination_id: destination_id.value,
+      vehicle_id: vehicle_id.value,
+      servicetime: servicetime.value,
+    })
+
+    if (response.code === 200) {
+      uni.showToast({
+        title: response.msg || "success",
+        icon: "success",
+      })
+      return
+    }
+
+    uni.showToast({
+      title: response.msg || "submit failed",
+      icon: "none",
+    })
+    return
+  } catch (error) {
+    console.error(error)
+    return
+  } finally {
+    submitting.value = false
+  }
 }
 
 const goChat = () => {
-  uni.navigateTo({ url: '/pages/chat/index' })
+  uni.navigateTo({ url: "/pages/chat/index" })
 }
 
 const goGuideDetail = (guide) => {
-  navStore.setParams({
-    name: guide.name,
-    tags: guide.tags,
-    orders: guide.orders,
-    img: guide.img,
-  })
-  uni.navigateTo({ url: '/pages/guide-detail/index' })
+  uni.navigateTo({ url: `/pages/guide-detail/index?id=${guide.id}` })
 }
 </script>
 

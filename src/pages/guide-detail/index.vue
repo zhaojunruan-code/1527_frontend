@@ -1,6 +1,5 @@
 <template>
   <view class="page">
-    <!-- Image Swiper -->
     <view class="swiper-wrap">
       <swiper
         class="swiper"
@@ -15,49 +14,41 @@
         </swiper-item>
       </swiper>
 
-      <!-- Back Button -->
       <view class="back-btn" @click="goBack">
         <text class="back-arrow">←</text>
       </view>
     </view>
 
-    <!-- Guide Info -->
     <view class="content">
       <view class="guide-header">
-        <text class="guide-name">{{ params.name || '导游' }}</text>
-        <text class="guide-orders">已服务 {{ params.orders || 0 }} 单</text>
+        <text class="guide-name">{{ detail.name || "导游" }}</text>
+        <text class="guide-orders">¥{{ detail.hourprice || 0 }}/小时</text>
       </view>
 
-      <!-- Tags -->
       <view class="tags">
-        <view class="tag" v-for="(tag, idx) in tagList" :key="idx">
+        <view class="tag" v-for="(tag, idx) in detail.tagsjson_text || []" :key="idx">
           <text class="tag-text">{{ tag }}</text>
         </view>
       </view>
 
-      <!-- Bio Section -->
       <view class="section">
         <text class="section-title">个人简介</text>
-        <text class="bio">
-          拥有多年潮汕地区导游经验，精通潮州话和普通话，对潮汕历史文化、民俗风情有深入研究。擅长为游客讲解英歌舞的历史渊源和文化内涵，熟悉潮汕各地美食和景点，能够根据游客需求定制个性化的旅游路线。热情好客，服务周到，深受游客好评。
-        </text>
+        <text class="bio">{{ detail.intro || "-" }}</text>
       </view>
 
-      <!-- Available Time Slots -->
       <view class="section">
         <text class="section-title">可预约时间</text>
         <view class="date-list">
-          <view class="date-block" v-for="(day, idx) in availableDates" :key="idx">
+          <view class="date-block" v-for="(day, idx) in detail.timeslot_list || []" :key="idx">
             <text class="date-label">{{ day.date }}</text>
             <view class="slots">
               <view
-                class="slot"
-                :class="{ 'slot-full': slot.full }"
                 v-for="(slot, sIdx) in day.slots"
                 :key="sIdx"
+                class="slot"
               >
-                <text class="slot-time">{{ slot.time }}</text>
-                <text class="slot-status">{{ slot.full ? '已满' : '可约' }}</text>
+                <text class="slot-time">{{ slot }}</text>
+                <text class="slot-status">可约</text>
               </view>
             </view>
           </view>
@@ -67,7 +58,6 @@
 
     <view class="bottom-spacer" :style="bottomSpacerStyle" />
 
-    <!-- Bottom Bar -->
     <view class="bottom-bar" :style="bottomBarStyle">
       <view class="bottom-bar-inner">
         <view class="book-btn" @click="goBooking">
@@ -79,60 +69,34 @@
 </template>
 
 <script setup>
-import { onLoad } from '@dcloudio/uni-app'
-import { useNavStore } from '@/store/useNavStore'
+import { onLoad } from "@dcloudio/uni-app"
+import { getTravelGuideDetail } from "@/api/travel"
 
-const navStore = useNavStore()
-const params = ref({})
+const detail = ref({})
 const swiperImages = ref([])
-const tagList = ref([])
 const safeAreaBottom = ref(0)
+const guideId = ref("")
 
-const availableDates = [
-  {
-    date: '03月23日（今天）',
-    slots: [
-      { time: '09:00-12:00', full: false },
-      { time: '14:00-17:00', full: true },
-      { time: '18:00-21:00', full: false },
-    ],
-  },
-  {
-    date: '03月24日（明天）',
-    slots: [
-      { time: '09:00-12:00', full: false },
-      { time: '14:00-17:00', full: false },
-      { time: '18:00-21:00', full: true },
-    ],
-  },
-  {
-    date: '03月25日（后天）',
-    slots: [
-      { time: '09:00-12:00', full: true },
-      { time: '14:00-17:00', full: false },
-      { time: '18:00-21:00', full: false },
-    ],
-  },
-]
+const loadDetail = async () => {
+  if (!guideId.value) {
+    return
+  }
 
-onLoad(() => {
+  const response = await getTravelGuideDetail({ id: guideId.value })
+  if (response.code === 200 && response.data) {
+    detail.value = response.data
+    swiperImages.value = detail.value.avatar ? [detail.value.avatar] : []
+  }
+}
+
+onLoad(async (options) => {
   const systemInfo = uni.getSystemInfoSync()
   if (systemInfo.safeAreaInsets) {
     safeAreaBottom.value = systemInfo.safeAreaInsets.bottom || 0
   }
 
-  params.value = navStore.params || {}
-  swiperImages.value = [
-    params.value.img || 'https://picsum.photos/seed/guide1/750/500',
-    'https://picsum.photos/seed/guide2/750/500',
-    'https://picsum.photos/seed/guide3/750/500',
-  ]
-  const rawTags = params.value.tags
-  if (typeof rawTags === 'string') {
-    tagList.value = rawTags.split(',').filter(Boolean)
-  } else if (Array.isArray(rawTags)) {
-    tagList.value = rawTags
-  }
+  guideId.value = options?.id || ""
+  await loadDetail()
 })
 
 const goBack = () => {
@@ -140,13 +104,7 @@ const goBack = () => {
 }
 
 const goBooking = () => {
-  navStore.setParams({
-    name: params.value.name,
-    img: params.value.img,
-    tags: params.value.tags,
-    orders: params.value.orders,
-  })
-  uni.navigateTo({ url: '/pages/guide-booking/index' })
+  uni.navigateTo({ url: `/pages/guide-booking/index?id=${detail.value.id}` })
 }
 
 const bottomBarStyle = computed(() => ({
@@ -302,11 +260,6 @@ const bottomSpacerStyle = computed(() => ({
   text-align: center;
 }
 
-.slot-full {
-  background: #f0f0f0;
-  border-color: #cccccc;
-}
-
 .slot-time {
   display: block;
   font-size: 24rpx;
@@ -318,14 +271,6 @@ const bottomSpacerStyle = computed(() => ({
   display: block;
   font-size: 22rpx;
   color: #a60000;
-}
-
-.slot-full .slot-time {
-  color: #999999;
-}
-
-.slot-full .slot-status {
-  color: #999999;
 }
 
 .bottom-spacer {

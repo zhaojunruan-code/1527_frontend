@@ -1,82 +1,118 @@
 <template>
   <view class="page">
-    <!-- Image Swiper -->
     <view class="swiper-wrap">
       <view class="back-btn" @click="goBack">
         <text class="back-icon">←</text>
       </view>
       <swiper class="swiper" :indicator-dots="true" indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#ffffff" autoplay circular>
-        <swiper-item v-for="(img, idx) in images" :key="idx">
+        <swiper-item v-for="(img, idx) in detail.images ? JSON.parse(detail.images) : []" :key="idx">
           <image :src="img" mode="aspectFill" class="swiper-img" />
         </swiper-item>
       </swiper>
     </view>
 
-    <!-- Content -->
     <view class="content">
       <view class="title-row">
-        <text class="title">{{ detail.title || '攻略详情' }}</text>
-        <view class="fav-btn" @click="isFavorite = !isFavorite">
-          <text :class="['fav-icon', isFavorite ? 'fav-active' : '']">{{ isFavorite ? '❤' : '♡' }}</text>
-          <text :class="['fav-text', isFavorite ? 'fav-active' : '']">{{ isFavorite ? '已收藏' : '收藏' }}</text>
+        <text class="title">{{ detail.title || "攻略详情" }}</text>
+        <view class="fav-btn" @click="toggleCollect">
+          <text :class="['fav-icon', detail.is_collect === 1 ? 'fav-active' : '']">{{ detail.is_collect === 1 ? "♥" : "♡" }}</text>
+          <text :class="['fav-text', detail.is_collect === 1 ? 'fav-active' : '']">{{ detail.is_collect === 1 ? "已收藏" : "收藏" }}</text>
         </view>
       </view>
-      <text class="pub-time">发布时间: {{ detail.time || '2026-03-20' }}</text>
+      <text class="pub-time">发布时间: {{ detail.createtime_text || "-" }}</text>
 
-      <!-- Location -->
       <view class="location-card" @click="openMap">
         <view class="loc-icon-wrap">
-          <text class="loc-icon">📍</text>
+          <AppIcon class="loc-icon" name="map-pin" size="40rpx" color="#a60000" />
         </view>
         <view class="loc-info">
-          <text class="loc-name">{{ locationName }}</text>
+          <text class="loc-name">{{ detail.position || "-" }}</text>
           <text class="loc-hint">点击查看地图及导航</text>
         </view>
       </view>
 
-      <!-- Article -->
       <view class="article">
-        <text class="article-p">
-          潮汕地区，以其独特的文化和美食闻名遐迩。来到这里，你不仅能品尝到令人垂涎欲滴的牛肉火锅、卤鹅和各种粿品，还能感受到浓厚的历史底蕴。
-        </text>
-        <text class="article-p">
-          如果是为了看英歌舞而来，建议提前查好演出时间表。英歌舞通常在逢年过节或者重大庆典时表演，气势磅礴，极具阳刚之气，被誉为"中华战舞"。现场观看的震撼力是视频里无法体会到的。
-        </text>
-        <text class="article-p">
-          除了看表演，古城的Citywalk也是必不可少的。穿梭在牌坊街，两旁是古色古香的骑楼，耳边是悠扬的潮剧，仿佛穿越回了古代。记得去开元寺感受一下宁静，去广济桥看看"过河拆桥"的奇景。
-        </text>
+        <rich-text class="article-richtext" :nodes="detail.content || ''" />
       </view>
     </view>
   </view>
 </template>
 
 <script setup>
-import { useNavStore } from '@/store/useNavStore'
+import { onLoad } from "@dcloudio/uni-app"
+import { getTravelStrategyDetail, postTravelCollectToggle } from "@/api/travel"
+import AppIcon from "@/components/AppIcon.vue"
+import { useNavStore } from "@/store/useNavStore"
+import { useUserStore } from "@/store/useUserStore"
 
 const navStore = useNavStore()
+const userStore = useUserStore()
 const detail = ref({})
-const isFavorite = ref(false)
+const strategyId = ref("")
 
-const images = computed(() => [
-  detail.value.img || 'https://picsum.photos/seed/st1/400/300',
-  'https://picsum.photos/seed/st2/400/300',
-  'https://picsum.photos/seed/st3/400/300'
-])
+const loadDetail = async () => {
+  if (!strategyId.value) {
+    return
+  }
 
-const locationName = computed(() => {
-  if (detail.value.title && detail.value.title.includes('英歌')) return '普宁市流沙广场'
-  return '潮州古城牌坊街'
-})
+  const response = await getTravelStrategyDetail({ id: strategyId.value })
+  if (response.code === 200 && response.data) {
+    detail.value = response.data
+  }
+}
 
-onLoad(() => {
+onLoad(async (options) => {
+  strategyId.value = options?.id || navStore.params?.id || ""
+
+  if (strategyId.value) {
+    await loadDetail()
+    return
+  }
+
   detail.value = navStore.params || {}
 })
 
 const goBack = () => uni.navigateBack()
 
+const toggleCollect = async () => {
+  if (!detail.value.id) {
+    return
+  }
+
+  if (!userStore.isLogin) {
+    uni.navigateTo({
+      url: `/pages/login/index?redirect=${encodeURIComponent(`/pages/strategy-detail/index?id=${detail.value.id}`)}`,
+    })
+    return
+  }
+
+  const response = await postTravelCollectToggle({
+    strategy_id: detail.value.id,
+  })
+
+  if (response.code === 200) {
+    uni.showToast({
+      title: response.msg || "操作成功",
+      icon: "none",
+    })
+    await loadDetail()
+    return
+  }
+
+  uni.showToast({
+    title: response.msg || "操作失败",
+    icon: "none",
+  })
+}
+
 const openMap = () => {
-  navStore.setParams({ name: locationName.value, address: `广东省${locationName.value}附近` })
-  uni.navigateTo({ url: '/pages/map/index' })
+  navStore.setParams({
+    name: detail.value.position,
+    address: detail.value.position,
+    latitude: Number(detail.value.latitude || 0),
+    longitude: Number(detail.value.longitude || 0),
+  })
+  uni.navigateTo({ url: "/pages/map/index" })
 }
 </script>
 
@@ -86,10 +122,12 @@ const openMap = () => {
   background: #fff;
   padding-bottom: 40rpx;
 }
+
 .swiper-wrap {
   position: relative;
   height: 500rpx;
 }
+
 .back-btn {
   position: absolute;
   top: 80rpx;
@@ -97,39 +135,46 @@ const openMap = () => {
   z-index: 10;
   width: 64rpx;
   height: 64rpx;
-  background: rgba(0,0,0,0.3);
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
+
 .back-icon {
   color: #fff;
   font-size: 36rpx;
 }
+
 .swiper {
   width: 100%;
   height: 100%;
 }
+
 .swiper-img {
   width: 100%;
   height: 100%;
 }
+
 .content {
   padding: 30rpx;
 }
+
 .title-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 20rpx;
 }
+
 .title {
   font-size: 38rpx;
   font-weight: bold;
   color: #1f2937;
   flex: 1;
 }
+
 .fav-btn {
   display: flex;
   flex-direction: column;
@@ -137,23 +182,28 @@ const openMap = () => {
   flex-shrink: 0;
   padding-top: 8rpx;
 }
+
 .fav-icon {
   font-size: 44rpx;
   color: #9ca3af;
 }
+
 .fav-text {
   font-size: 20rpx;
   color: #9ca3af;
 }
+
 .fav-active {
   color: #ef4444 !important;
 }
+
 .pub-time {
   font-size: 26rpx;
   color: #6b7280;
   margin-top: 16rpx;
   display: block;
 }
+
 .location-card {
   display: flex;
   align-items: center;
@@ -163,6 +213,7 @@ const openMap = () => {
   margin-top: 30rpx;
   border: 1rpx solid #f3f4f6;
 }
+
 .loc-icon-wrap {
   width: 80rpx;
   height: 80rpx;
@@ -174,32 +225,42 @@ const openMap = () => {
   margin-right: 24rpx;
   flex-shrink: 0;
 }
+
 .loc-icon {
-  font-size: 36rpx;
+  display: block;
 }
+
 .loc-info {
   flex: 1;
 }
+
 .loc-name {
   font-size: 28rpx;
   font-weight: bold;
   color: #1f2937;
   display: block;
 }
+
 .loc-hint {
   font-size: 24rpx;
   color: #6b7280;
   margin-top: 6rpx;
   display: block;
 }
+
 .article {
   margin-top: 40rpx;
 }
-.article-p {
+
+.article-richtext {
+  display: block;
   font-size: 28rpx;
   color: #4b5563;
   line-height: 1.8;
-  margin-bottom: 24rpx;
+}
+
+.article-richtext :deep(p) {
   display: block;
+  margin-bottom: 24rpx;
 }
 </style>

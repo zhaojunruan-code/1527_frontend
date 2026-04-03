@@ -20,8 +20,10 @@ export const http = (options) =>
       // #endif
       success(res) {
         const { statusCode, data } = res
-        if (data.code && data.code == 401) {
+        if (data?.code === 401) {
+          userStore.clearUserInfo()
           useNavigate("/pages/login/index")
+          reject(data)
         } else if (statusCode >= 200 && statusCode < 300) {
           resolve(data)
         } else if (statusCode === 401) {
@@ -30,7 +32,7 @@ export const http = (options) =>
           reject(res)
         } else {
           if (!options.hideErrorToast) {
-            showErrorToast(data.msg || "请求错误")
+            showErrorToast(data?.msg || "请求错误")
           }
           reject(res)
         }
@@ -42,25 +44,22 @@ export const http = (options) =>
     })
   })
 
-export const httpGet = (url, data = {}) => http({ url, data, method: "GET" })
+export const httpGet = (url, data = {}, options = {}) => http({ ...options, url, data, method: "GET" })
 
-export const httpPost = (url, data) => http({ url, data, method: "POST" })
+export const httpPost = (url, data, options = {}) => http({ ...options, url, data, method: "POST" })
 
-export const httpPut = (url, data) => http({ url, data, method: "PUT" })
+export const httpPut = (url, data, options = {}) => http({ ...options, url, data, method: "PUT" })
 
-export const httpDelete = (url, data = {}) => {
+export const httpDelete = (url, data = {}, options = {}) => {
   const queryParams = objectToQueryParams(data)
   const finalUrl = queryParams ? `${url}?${queryParams}` : url
-  return http({ url: finalUrl, method: "DELETE" })
+  return http({ ...options, url: finalUrl, method: "DELETE" })
 }
 
-/**
- * 分开各个请求方法， 如果有特殊需求就改对应的方法，不影响其他
- * @param option
- * @returns {Promise<unknown>}
- */
 export const request = (option) => {
-  let { method, url, data } = option
+  const { method = "GET", url: requestUrl, data, ...rest } = option
+  let url = requestUrl
+
   if (!url.startsWith("/")) {
     url = "/" + url
   }
@@ -68,13 +67,13 @@ export const request = (option) => {
 
   switch (method.toLowerCase()) {
     case "get":
-      return httpGet(url, data)
+      return httpGet(url, data, rest)
     case "post":
-      return httpPost(url, data)
+      return httpPost(url, data, rest)
     case "put":
-      return httpPut(url, data)
+      return httpPut(url, data, rest)
     case "delete":
-      return httpDelete(url, data)
+      return httpDelete(url, data, rest)
     default:
       throw new Error(`不支持的请求方法: ${method}`)
   }

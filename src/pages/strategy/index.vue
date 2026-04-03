@@ -15,12 +15,14 @@
           <view class="search-bar">
             <AppIcon class="search-icon" name="search" size="18" color="#9ca3af" />
             <input
-              v-model="searchText"
+              v-model.trim="searchText"
               class="search-input"
               type="text"
               placeholder="搜索攻略、景点、美食..."
               confirm-type="search"
+              @confirm="loadStrategyList"
             />
+            <text v-if="searchText" class="search-clear" @click="clearSearch">清空</text>
           </view>
         </view>
       </template>
@@ -28,20 +30,20 @@
       <view class="page-content">
         <view class="grid">
           <view
-            v-for="item in filteredStrategies"
+            v-for="item in strategyListData.list"
             :key="item.id"
             class="card"
             @click="goDetail(item)"
           >
-            <image class="card-img" :src="item.img" mode="aspectFill" />
+            <image class="card-img" :src="item.images ? JSON.parse(item.images)[0] : ''" mode="aspectFill" />
             <view class="card-body">
               <text class="card-title">{{ item.title }}</text>
-              <text class="card-time">{{ item.time }}</text>
+              <text class="card-time">{{ item.position }}</text>
             </view>
           </view>
 
-          <view v-if="filteredStrategies.length === 0" class="empty-state">
-            <text class="empty-text">未找到相关攻略</text>
+          <view v-if="strategyListData.list.length === 0" class="empty-state">
+            <text class="empty-text">{{ searchText ? "未找到相关攻略" : "暂无攻略数据" }}</text>
           </view>
         </view>
 
@@ -54,80 +56,61 @@
 </template>
 
 <script setup>
-import AppIcon from '@/components/AppIcon.vue'
-import CustomTabbar from '@/components/CustomTabbar/index.vue'
-import { useNavStore } from '@/store/useNavStore'
-import { useTabbarStore } from '@/store/useTabbarStore'
+import { onLoad } from "@dcloudio/uni-app"
+import { getTravelStrategyList } from "@/api/travel"
+import AppIcon from "@/components/AppIcon.vue"
+import CustomTabbar from "@/components/CustomTabbar/index.vue"
+import { useTabbarStore } from "@/store/useTabbarStore"
 
-const navStore = useNavStore()
 const tabbarStore = useTabbarStore()
 const safeAreaTop = ref(0)
+const searchText = ref("")
+const strategyListData = ref({
+  list: [],
+  total: 0,
+})
 
-const searchText = ref('')
+const normalizeListData = (response) => {
+  if (Array.isArray(response?.data)) {
+    return {
+      list: response.data,
+      total: response.data.length,
+    }
+  }
 
-const strategies = [
-  {
-    id: 1,
-    title: '2026潮汕英歌舞观看指南：时间与地点全揭秘',
-    time: '2026-03-20',
-    author: '潮汕文旅局',
-    views: '1.2w',
-    img: 'https://picsum.photos/seed/yingge1/400/300',
-  },
-  {
-    id: 2,
-    title: '潮汕牛肉火锅哪家强？本地人吐血推荐',
-    time: '2026-03-18',
-    author: '吃货小分队',
-    views: '8500',
-    img: 'https://picsum.photos/seed/beef1/400/300',
-  },
-  {
-    id: 3,
-    title: '南澳岛两日游保姆级攻略，看最美日落',
-    time: '2026-03-15',
-    author: '旅行达人阿星',
-    views: '2.1w',
-    img: 'https://picsum.photos/seed/nanao1/400/300',
-  },
-  {
-    id: 4,
-    title: '潮州古城Citywalk路线，穿越千年时光',
-    time: '2026-03-10',
-    author: '古建爱好者',
-    views: '5400',
-    img: 'https://picsum.photos/seed/chaozhou1/400/300',
-  },
-  {
-    id: 5,
-    title: '揭阳进贤门夜景打卡，周边小吃一网打尽',
-    time: '2026-03-05',
-    author: '揭阳土著',
-    views: '3200',
-    img: 'https://picsum.photos/seed/jieyang1/400/300',
-  },
-]
+  return {
+    list: Array.isArray(response?.data?.list) ? response.data.list : [],
+    total: Number(response?.data?.total) || 0,
+  }
+}
 
-onMounted(() => {
+const loadStrategyList = async () => {
+  const response = await getTravelStrategyList({
+    page: 1,
+    rows: 50,
+    keywords: searchText.value.trim(),
+  })
+
+  if (response.code === 200) {
+    strategyListData.value = normalizeListData(response)
+  }
+}
+
+const clearSearch = async () => {
+  searchText.value = ""
+  await loadStrategyList()
+}
+
+onLoad(async (options) => {
   const { statusBarHeight } = uni.getSystemInfoSync()
   safeAreaTop.value = statusBarHeight || 0
   tabbarStore.tabbarIndex = 3
-})
-
-const filteredStrategies = computed(() => {
-  const keyword = searchText.value.trim().toLowerCase()
-  if (!keyword) {
-    return strategies
-  }
-
-  return strategies.filter((item) => {
-    return `${item.title} ${item.author}`.toLowerCase().includes(keyword)
-  })
+  searchText.value = decodeURIComponent(options?.keywords || "")
+  await loadStrategyList()
 })
 
 const goDetail = (item) => {
-  navStore.setParams(item)
-  uni.navigateTo({ url: '/pages/strategy-detail/index' })
+  uni.navigateTo({ url: `/pages/strategy-detail/index?id=${item.id}` })
 }
 </script>
 
@@ -186,6 +169,13 @@ const goDetail = (item) => {
   font-size: 26rpx;
   color: #1f2937;
   background: transparent;
+}
+
+.search-clear {
+  flex-shrink: 0;
+  margin-left: 12rpx;
+  font-size: 24rpx;
+  color: #9ca3af;
 }
 
 .page-content {

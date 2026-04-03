@@ -3,17 +3,35 @@
     <image class="login-bg-image" src="/static/images/login-bg.png" mode="aspectFill" />
     <view class="login-content flex-1 flex flex-col items-center justify-center px-8">
       <view class="logo-box">
-        <text class="logo-text">潮</text>
+        <image class="logo-image" :src="projectLogo" mode="aspectFit" />
       </view>
 
       <text class="app-title">潮汕·英歌行</text>
       <text class="app-slogan">探索最地道的潮汕风物</text>
 
-      <view class="w-full mt-16" @click="handleLogin">
+      <!-- #ifdef MP-WEIXIN -->
+      <LoginWrapper
+        :agreement="agreed"
+        :login-type="2"
+        :redirect-url="redirect"
+        :auto-silent-login="true"
+        :auto-open-phone-auth="false"
+      >
+        <view class="w-full mt-16">
+          <view class="login-btn">
+            <text class="login-btn-text">微信快捷登录</text>
+          </view>
+        </view>
+      </LoginWrapper>
+      <!-- #endif -->
+
+      <!-- #ifndef MP-WEIXIN -->
+      <view class="w-full mt-16" @click="handleFallbackLogin">
         <view class="login-btn">
-          <text class="login-btn-text">快捷登录</text>
+          <text class="login-btn-text">{{ loading ? "登录中..." : "快捷登录" }}</text>
         </view>
       </view>
+      <!-- #endif -->
 
       <view class="mt-6 flex items-center justify-center text-xs">
         <checkbox
@@ -23,28 +41,77 @@
           @click="agreed = !agreed"
         />
         <text class="text-gray-400">我已阅读并同意</text>
-        <text class="link-text">《用户协议》</text>
+        <text class="link-text" @click.stop="goRichtext(1)">《用户协议》</text>
         <text class="text-gray-400">和</text>
-        <text class="link-text">《隐私政策》</text>
+        <text class="link-text" @click.stop="goRichtext(2)">《隐私政策》</text>
       </view>
     </view>
   </view>
 </template>
 
 <script setup>
-import { useTabbarStore } from '@/store/useTabbarStore'
+import { onLoad } from "@dcloudio/uni-app"
+import LoginWrapper from "@/components/LoginWrapper/index.vue"
+import { useSiteConfigStore } from "@/store/useSiteConfigStore"
+import { useTabbarStore } from "@/store/useTabbarStore"
+import { useUserStore } from "@/store/useUserStore"
+import { DEFAULT_PROJECT_LOGO } from "@/utils/siteConfig"
 
 const agreed = ref(true)
+const loading = ref(false)
+const redirect = ref("")
+const siteConfigStore = useSiteConfigStore()
 const tabbarStore = useTabbarStore()
+const userStore = useUserStore()
+const projectLogo = computed(() => siteConfigStore.logoUrl || DEFAULT_PROJECT_LOGO)
 
-const handleLogin = () => {
-  if (!agreed.value) {
-    uni.showToast({ title: '请先同意用户协议', icon: 'none' })
+onLoad((options) => {
+  redirect.value = options?.redirect ? decodeURIComponent(options.redirect) : ""
+  siteConfigStore.loadSiteConfig()
+})
+
+const goRichtext = (type) => {
+  uni.navigateTo({ url: `/pages/about-us/index?type=${type}` })
+}
+
+const handleFallbackLogin = async () => {
+  if (loading.value) {
     return
   }
 
-  tabbarStore.tabbarIndex = 0
-  uni.reLaunch({ url: '/pages/home/index' })
+  if (!agreed.value) {
+    uni.showToast({ title: "请先同意用户协议", icon: "none" })
+    return
+  }
+
+  loading.value = true
+  uni.showLoading({
+    title: "登录中",
+    mask: true,
+  })
+
+  try {
+    const response = await userStore.onLogin({ user_id: 1 })
+
+    if (response.code === 200) {
+      tabbarStore.tabbarIndex = 0
+      uni.reLaunch({ url: redirect.value || "/pages/home/index" })
+      return
+    }
+
+    uni.showToast({
+      title: response.msg || "登录失败",
+      icon: "none",
+    })
+  } catch (error) {
+    uni.showToast({
+      title: error?.message || "登录失败",
+      icon: "none",
+    })
+  } finally {
+    loading.value = false
+    uni.hideLoading()
+  }
 }
 </script>
 
@@ -84,10 +151,10 @@ const handleLogin = () => {
   box-shadow: 0 20rpx 40rpx rgba(166, 0, 0, 0.2);
 }
 
-.logo-text {
-  color: #ffffff;
-  font-weight: bold;
-  font-size: 72rpx;
+.logo-image {
+  width: 128rpx;
+  height: 128rpx;
+  display: block;
 }
 
 .app-title {

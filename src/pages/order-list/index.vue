@@ -14,50 +14,58 @@
     >
       <wd-tab v-for="tab in tabs" :key="tab.id" :name="tab.id" :title="tab.label">
         <view class="order-list">
-          <view v-if="ordersByTab[tab.id].length === 0" class="empty">
+          <view v-if="isLoading" class="empty">
+            <text class="empty-text">订单加载中...</text>
+          </view>
+
+          <view v-else-if="ordersByTab[tab.id].length === 0" class="empty">
             <text class="empty-text">暂无相关订单</text>
           </view>
 
           <view
             v-for="order in ordersByTab[tab.id]"
-            :key="order.id"
+            :key="order.recordId || order.id"
             class="order-card"
             @click="viewDetail(order)"
           >
             <view class="order-head">
               <text class="order-id">订单号: {{ order.id }}</text>
-              <text :class="['status', `status-${order.status}`]">{{ getStatusText(order.status) }}</text>
+              <text :class="['status', `status-${order.status}`]">
+                {{ order.statusText || getStatusText(order.status) }}
+              </text>
             </view>
 
             <view class="order-body">
-              <text class="order-title">{{ order.title }}</text>
-              <text class="order-price">¥{{ order.price }}</text>
+              <view class="order-main">
+                <text class="order-title">{{ order.title }}</text>
+                <text v-if="order.serviceSummary" class="order-subtitle">{{ order.serviceSummary }}</text>
+              </view>
+              <text class="order-price">¥{{ order.priceText }}</text>
             </view>
 
-            <text class="order-date">预约时间: {{ order.date }}</text>
+            <text v-if="order.date" class="order-date">预约时间: {{ order.date }}</text>
+            <text v-if="order.orderTime" class="order-meta">下单时间: {{ order.orderTime }}</text>
 
-            <view class="order-footer">
+            <view v-if="showActions(order.status)" class="order-footer">
               <view class="countdown-wrap">
-                <text v-if="order.status === 'pending_payment'" class="countdown">
-                  支付剩余 {{ getCountdown(order.id) }}
-                </text>
+                <text class="order-tag">{{ order.typeText }}</text>
               </view>
 
               <view class="order-actions">
                 <template v-if="order.status === 'pending_payment'">
-                  <view class="btn-outline" @click.stop>
+                  <view class="btn-outline" @click.stop="cancelOrder(order)">
                     <text class="btn-text">取消订单</text>
                   </view>
-                  <view class="btn-primary" @click.stop>
+                  <view class="btn-primary" @click.stop="payOrder(order)">
                     <text class="btn-primary-text">立即支付</text>
                   </view>
                 </template>
 
-                <template v-if="order.status === 'pending_service'">
-                  <view class="btn-outline" @click.stop>
+                <template v-else-if="order.status === 'pending_service'">
+                  <view class="btn-outline" @click.stop="cancelOrder(order)">
                     <text class="btn-text">取消订单</text>
                   </view>
-                  <view class="btn-outline" @click.stop>
+                  <view class="btn-outline" @click.stop="contactService">
                     <text class="btn-text">联系客服</text>
                   </view>
                 </template>
@@ -71,13 +79,24 @@
 </template>
 
 <script setup>
+import { getTravelOrderList, postTravelCancelOrder, postTravelPayOrder } from '@/api/travel'
 import { useNavStore } from '@/store/useNavStore'
+import {
+  extractTravelOrderList,
+  getTravelOrderStatusText,
+  getTravelOrderTotal,
+  normalizeTravelOrder,
+} from '@/utils/order'
+
+const ORDER_PAGE_SIZE = 50
+const MAX_ORDER_PAGES = 10
 
 const navStore = useNavStore()
 const activeTab = ref('all')
 const safeAreaTop = ref(0)
-const countdowns = ref({})
-let timers = {}
+const isLoading = ref(false)
+const actionOrderId = ref('')
+const orders = ref([])
 
 const tabs = [
   { id: 'all', label: '全部' },
@@ -88,134 +107,142 @@ const tabs = [
   { id: 'refund', label: '退款/售后' },
 ]
 
-const orders = ref([
-  {
-    id: 'ORD2026032301',
-    title: '南澳岛一日游包车',
-    type: 'charter',
-    status: 'pending_payment',
-    price: 300,
-    date: '2026-03-23 10:00',
-    orderTime: '2026-03-22 14:30',
-    vehicle: '5座 舒适型轿车',
-    destination: '汕头站 -> 南澳岛',
-  },
-  {
-    id: 'ORD2026032205',
-    title: '林导 (阿林) - 全天预约',
-    type: 'guide',
-    status: 'pending_service',
-    price: 300,
-    date: '2026-03-24 09:00',
-    orderTime: '2026-03-21 09:15',
-    guideName: '林导 (阿林)',
-    guideImg: 'https://picsum.photos/seed/guide1/100/100',
-  },
-  {
-    id: 'ORD2026032012',
-    title: '潮州古城深度游',
-    type: 'charter',
-    status: 'completed',
-    price: 299,
-    date: '2026-03-20 14:00',
-    orderTime: '2026-03-18 10:00',
-    vehicle: '7座 商务车',
-    destination: '潮州古城一日游包车',
-  },
-  {
-    id: 'ORD2026031808',
-    title: '汕头站接送机',
-    type: 'charter',
-    status: 'cancelled',
-    price: 120,
-    date: '2026-03-18 15:30',
-    orderTime: '2026-03-17 20:00',
-    vehicle: '5座 经济型轿车',
-    destination: '揭阳潮汕机场 -> 汕头市区',
-  },
-  {
-    id: 'ORD2026031502',
-    title: '李导 (老李) - 按小时预约',
-    type: 'guide',
-    status: 'refund',
-    price: 150,
-    date: '2026-03-15 08:00',
-    orderTime: '2026-03-10 11:20',
-    guideName: '李导 (老李)',
-    guideImg: 'https://picsum.photos/seed/guide4/100/100',
-  },
-])
-
 const tabsOffsetTop = computed(() => safeAreaTop.value + 44)
 
 const ordersByTab = computed(() => {
   return tabs.reduce((result, tab) => {
-    result[tab.id] = tab.id === 'all' ? orders.value : orders.value.filter(order => order.status === tab.id)
+    result[tab.id] = tab.id === 'all'
+      ? orders.value
+      : orders.value.filter(order => order.status === tab.id)
     return result
   }, {})
 })
 
-const getStatusText = (status) => {
-  const map = {
-    pending_payment: '待支付',
-    pending_service: '待服务',
-    completed: '已完成',
-    cancelled: '已取消',
-    refund: '退款/售后',
-  }
-  return map[status] || ''
+const getStatusText = (status) => getTravelOrderStatusText(status)
+
+const showActions = (status) => ['pending_payment', 'pending_service'].includes(status)
+
+const resolveTab = (tab) => {
+  return tabs.some(item => item.id === tab) ? tab : 'all'
 }
 
-const getCountdown = (orderId) => {
-  const val = countdowns.value[orderId]
-  if (!val || val <= 0) return '00:00'
-  const m = Math.floor(val / 60).toString().padStart(2, '0')
-  const s = (val % 60).toString().padStart(2, '0')
-  return `${m}:${s}`
-}
+const loadOrders = async () => {
+  isLoading.value = true
 
-const clearCountdowns = () => {
-  Object.values(timers).forEach(timer => clearInterval(timer))
-  timers = {}
-}
+  try {
+    const allOrders = []
+    let page = 1
+    let total = 0
 
-const startCountdowns = () => {
-  clearCountdowns()
-
-  orders.value.forEach((order) => {
-    if (order.status !== 'pending_payment') return
-
-    countdowns.value[order.id] = 900
-    timers[order.id] = setInterval(() => {
-      if (countdowns.value[order.id] > 0) {
-        countdowns.value[order.id]--
-      } else {
-        clearInterval(timers[order.id])
+    do {
+      const response = await getTravelOrderList({ page, rows: ORDER_PAGE_SIZE })
+      if (response.code !== 200) {
+        if (page === 1) {
+          orders.value = []
+        }
+        return
       }
-    }, 1000)
-  })
+
+      const pageList = extractTravelOrderList(response)
+      allOrders.push(...pageList)
+      total = getTravelOrderTotal(response, allOrders.length)
+
+      if (!pageList.length || pageList.length < ORDER_PAGE_SIZE) {
+        break
+      }
+
+      page += 1
+    } while (allOrders.length < total && page <= MAX_ORDER_PAGES)
+
+    orders.value = allOrders.map(order => normalizeTravelOrder(order))
+  } finally {
+    isLoading.value = false
+    uni.stopPullDownRefresh?.()
+  }
 }
 
 onLoad((options) => {
   const { statusBarHeight } = uni.getSystemInfoSync()
   safeAreaTop.value = statusBarHeight || 0
+  activeTab.value = resolveTab(options?.tab)
+})
 
-  if (options && options.tab) {
-    activeTab.value = options.tab
+onShow(() => {
+  loadOrders()
+})
+
+onPullDownRefresh(() => {
+  loadOrders()
+})
+
+const goBack = () => {
+  if (getCurrentPages().length > 1) {
+    uni.navigateBack()
+    return
   }
 
-  startCountdowns()
-})
-
-onUnload(() => {
-  clearCountdowns()
-})
-
-const goBack = () => uni.navigateBack()
+  uni.switchTab({ url: '/pages/profile/index' })
+}
 
 const viewDetail = (order) => {
   navStore.setParams(order)
-  uni.navigateTo({ url: '/pages/order-detail/index' })
+  uni.navigateTo({ url: `/pages/order-detail/index?id=${order.recordId}` })
+}
+
+const cancelOrder = (order) => {
+  if (!order?.recordId || actionOrderId.value) {
+    return
+  }
+
+  uni.showModal({
+    title: '取消订单',
+    content: '确认取消该订单吗？',
+    success: async ({ confirm }) => {
+      if (!confirm) {
+        return
+      }
+
+      actionOrderId.value = String(order.recordId)
+
+      try {
+        const response = await postTravelCancelOrder({ id: order.recordId })
+        if (response.code === 200) {
+          uni.showToast({
+            icon: 'success',
+            title: response.msg || '订单已取消',
+          })
+          await loadOrders()
+        }
+      } finally {
+        actionOrderId.value = ''
+      }
+    },
+  })
+}
+
+const payOrder = async (order) => {
+  if (!order?.recordId || actionOrderId.value) {
+    return
+  }
+
+  actionOrderId.value = String(order.recordId)
+
+  try {
+    const response = await postTravelPayOrder({ id: order.recordId })
+    if (response.code === 200) {
+      uni.showToast({
+        icon: 'success',
+        title: response.msg || '支付成功',
+      })
+      await loadOrders()
+    }
+  } finally {
+    actionOrderId.value = ''
+  }
+}
+
+const contactService = () => {
+  uni.navigateTo({ url: '/pages/chat/index' })
 }
 </script>
 
@@ -281,17 +308,21 @@ const viewDetail = (order) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16rpx;
   padding-bottom: 16rpx;
   border-bottom: 1rpx solid #f9fafb;
   margin-bottom: 20rpx;
 }
 
 .order-id {
+  flex: 1;
   font-size: 24rpx;
   color: #6b7280;
+  word-break: break-all;
 }
 
 .status {
+  flex-shrink: 0;
   font-size: 28rpx;
   font-weight: 500;
 }
@@ -319,25 +350,44 @@ const viewDetail = (order) => {
 .order-body {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 24rpx;
   margin-bottom: 8rpx;
 }
 
+.order-main {
+  flex: 1;
+  min-width: 0;
+}
+
 .order-title {
+  display: block;
   font-size: 30rpx;
+  line-height: 1.4;
   font-weight: 700;
   color: #1f2937;
+}
+
+.order-subtitle {
+  display: block;
+  margin-top: 10rpx;
+  font-size: 24rpx;
+  color: #6b7280;
+  line-height: 1.5;
 }
 
 .order-price {
+  flex-shrink: 0;
   font-size: 30rpx;
   font-weight: 700;
   color: #1f2937;
 }
 
-.order-date {
+.order-date,
+.order-meta {
   display: block;
   font-size: 24rpx;
+  line-height: 1.7;
   color: #9ca3af;
 }
 
@@ -345,17 +395,29 @@ const viewDetail = (order) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 16rpx;
   margin-top: 24rpx;
 }
 
-.countdown {
-  font-size: 24rpx;
-  color: #ef4444;
-  font-weight: 500;
+.countdown-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.order-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 10rpx 18rpx;
+  border-radius: 999rpx;
+  background: #fff5f5;
+  font-size: 22rpx;
+  color: #a60000;
 }
 
 .order-actions {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 16rpx;
 }
 

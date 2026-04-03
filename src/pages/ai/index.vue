@@ -1,12 +1,10 @@
 <template>
   <view class="page">
-    <!-- Header -->
     <view class="header">
       <view class="header-safe-area" :style="{ height: `${safeAreaTop}px` }" />
       <text class="header-title">潮汕百事通 AI</text>
     </view>
 
-    <!-- Chat area -->
     <scroll-view
       class="chat-area"
       scroll-y
@@ -17,18 +15,16 @@
         <view
           v-for="(msg, idx) in messages"
           :key="idx"
-          :id="'msg-' + idx"
+          :id="`msg-${idx}`"
           class="msg-row"
           :class="msg.role === 'user' ? 'msg-row-right' : 'msg-row-left'"
         >
-          <!-- AI avatar -->
           <view v-if="msg.role === 'ai'" class="avatar-wrap">
             <view class="avatar-ai">
               <text class="avatar-text">AI</text>
             </view>
           </view>
 
-          <!-- Bubble -->
           <view
             class="bubble"
             :class="msg.role === 'user' ? 'bubble-user' : 'bubble-ai'"
@@ -36,7 +32,6 @@
             <text class="bubble-text">{{ msg.content }}</text>
           </view>
 
-          <!-- User avatar -->
           <view v-if="msg.role === 'user'" class="avatar-wrap">
             <view class="avatar-user">
               <text class="avatar-text">我</text>
@@ -44,7 +39,6 @@
           </view>
         </view>
 
-        <!-- Loading dots -->
         <view v-if="loading" class="msg-row msg-row-left">
           <view class="avatar-wrap">
             <view class="avatar-ai">
@@ -64,26 +58,24 @@
       </view>
     </scroll-view>
 
-    <!-- Quick questions -->
     <view v-if="messages.length <= 1" class="quick-questions">
       <view
-        class="quick-btn"
         v-for="(q, idx) in quickQuestions"
         :key="idx"
+        class="quick-btn"
         @click="sendMessage(q)"
       >
         <text class="quick-text">{{ q }}</text>
       </view>
     </view>
 
-    <!-- Input area -->
     <view class="input-area">
       <view class="input-wrap">
         <input
+          v-model="inputText"
           class="msg-input"
           type="text"
           placeholder="输入你的问题..."
-          v-model="inputText"
           confirm-type="send"
           @confirm="sendMessage(inputText)"
         />
@@ -93,24 +85,25 @@
       </view>
     </view>
 
-    <!-- Bottom spacing for tabbar -->
     <view style="height: 120rpx" />
     <CustomTabbar />
   </view>
 </template>
 
 <script setup>
+import { getAIGreetingList } from '@/api/common'
 import CustomTabbar from '@/components/CustomTabbar/index.vue'
 import { useTabbarStore } from '@/store/useTabbarStore'
 
 const tabbarStore = useTabbarStore()
 const safeAreaTop = ref(0)
 
-onMounted(() => {
-  const { statusBarHeight } = uni.getSystemInfoSync()
-  safeAreaTop.value = statusBarHeight || 0
-  tabbarStore.tabbarIndex = 2
-})
+const defaultQuickQuestions = [
+  '普宁英歌舞哪里看？',
+  '潮州三天两夜怎么玩？',
+  '推荐正宗的牛肉火锅',
+  '南澳岛需要买门票吗？',
+]
 
 const messages = ref([
   {
@@ -118,17 +111,33 @@ const messages = ref([
     content: '胶己人，你好！我是潮汕智能助手。关于潮汕旅游、美食、英歌舞文化，或者行程规划，都可以问我哦！',
   },
 ])
-
 const inputText = ref('')
 const loading = ref(false)
 const scrollToId = ref('')
+const quickQuestions = ref([...defaultQuickQuestions])
 
-const quickQuestions = [
-  '普宁英歌舞哪里看？',
-  '潮州三天两夜怎么玩？',
-  '推荐正宗的牛肉火锅',
-  '南澳岛需要买门票吗？',
-]
+const loadQuickQuestions = async () => {
+  const response = await getAIGreetingList()
+  const list = Array.isArray(response?.data?.list) ? response.data.list : []
+
+  if (![1, 200].includes(Number(response?.code)) || !list.length) {
+    quickQuestions.value = [...defaultQuickQuestions]
+    return
+  }
+
+  const nextQuestions = list
+    .map(item => String(item?.name || '').trim())
+    .filter(Boolean)
+
+  quickQuestions.value = nextQuestions.length ? nextQuestions : [...defaultQuickQuestions]
+}
+
+onMounted(async () => {
+  const { statusBarHeight } = uni.getSystemInfoSync()
+  safeAreaTop.value = statusBarHeight || 0
+  tabbarStore.tabbarIndex = 2
+  await loadQuickQuestions()
+})
 
 const scrollToBottom = () => {
   nextTick(() => {
@@ -152,14 +161,16 @@ const mockAIResponse = (question) => {
   }
 
   return (
-    responses[question] ||
-    `关于"${question}"，这是一个很好的问题！潮汕地区历史悠久、文化丰富，建议您可以通过以下方式了解更多：\n1. 查看我们的攻略频道获取详细介绍\n2. 预约当地导游进行深度体验\n3. 联系客服获取个性化行程规划\n\n还有其他想了解的吗？`
+    responses[question]
+    || `关于"${question}"，这是一个很好的问题！潮汕地区历史悠久、文化丰富，建议您可以通过以下方式了解更多：\n1. 查看我们的攻略频道获取详细介绍\n2. 预约当地导游进行深度体验\n3. 联系客服获取个性化行程规划\n\n还有其他想了解的吗？`
   )
 }
 
 const sendMessage = (text) => {
   const content = typeof text === 'string' ? text.trim() : ''
-  if (!content || loading.value) return
+  if (!content || loading.value) {
+    return
+  }
 
   messages.value.push({ role: 'user', content })
   inputText.value = ''
@@ -289,7 +300,6 @@ const sendMessage = (text) => {
   white-space: pre-wrap;
 }
 
-/* Loading dots animation */
 .loading-dots {
   display: flex;
   align-items: center;
@@ -324,13 +334,13 @@ const sendMessage = (text) => {
     transform: scale(0.6);
     opacity: 0.4;
   }
+
   40% {
     transform: scale(1);
     opacity: 1;
   }
 }
 
-/* Quick questions */
 .quick-questions {
   display: flex;
   flex-wrap: wrap;
@@ -350,7 +360,6 @@ const sendMessage = (text) => {
   color: #a60000;
 }
 
-/* Input area */
 .input-area {
   padding: 16rpx 24rpx;
   background: #ffffff;
